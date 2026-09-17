@@ -1,6 +1,8 @@
-﻿node_modules/
+node_modules/
 *.tmp
 *.bak
 *.log
 .DS_Store
 Thumbs.db
+.idea/
+.vscode/

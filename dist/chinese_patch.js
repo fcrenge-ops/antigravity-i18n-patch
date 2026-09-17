@@ -1,7 +1,7 @@
 /**
  * Antigravity UI 界面全量简体中文汉化补丁
  * Antigravity Full Chinese Localization Patch
- * (由 build.js 依据 dict.json 自动构建生成)
+ * (由 scripts/build.js 依据 locales/dict.json 自动构建生成)
  */
 
 (function () {

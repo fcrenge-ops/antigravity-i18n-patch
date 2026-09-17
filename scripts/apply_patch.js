@@ -1,5 +1,6 @@
-﻿const fs = require('fs');
+const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const targetDir = process.argv[2];
 if (!targetDir || !fs.existsSync(targetDir)) {
@@ -7,55 +8,67 @@ if (!targetDir || !fs.existsSync(targetDir)) {
   process.exit(1);
 }
 
-const patchSource = path.join(__dirname, 'chinese_patch.js');
+const rootDir = path.resolve(__dirname, '..');
+let patchSource = path.join(rootDir, 'dist', 'chinese_patch.js');
+
+// 如果 dist/chinese_patch.js 产物不存在，自动调用 build.js 进行构建
+if (!fs.existsSync(patchSource)) {
+  console.log('[提示] 未找到 dist/chinese_patch.js，正在自动构建...');
+  try {
+    const buildScript = path.join(__dirname, 'build.js');
+    execSync(`node "${buildScript}"`, { stdio: 'inherit' });
+  } catch (e) {
+    console.error('[错误] 自动构建补丁产物失败:', e);
+    process.exit(1);
+  }
+}
+
 const patchCode = fs.readFileSync(patchSource, 'utf8');
 
-// 1. 直接将汉化代码整体内联注入到 dist/preload.js
+// 1. 将汉化代码内联注入到 dist/preload.js
 const preloadPath = path.join(targetDir, 'dist', 'preload.js');
+if (!fs.existsSync(preloadPath)) {
+  console.error('[错误] 未在目标目录中找到 dist/preload.js');
+  process.exit(1);
+}
+
 let preloadContent = fs.readFileSync(preloadPath, 'utf8');
 
-// 清除旧的 require 语句（如果存在）
+// 清除历史旧版本注入标记（支持重复安装与升级）
 preloadContent = preloadContent.replace(/\/\/ =*[\s\S]*?require\('\.\/chinese_patch\.js'\);[\s\S]*?}/g, '');
 preloadContent = preloadContent.replace(/\/\/ --- Antigravity 简体中文汉化补丁 ---[\s\S]*?}/g, '');
+preloadContent = preloadContent.replace(/\/\/ =*[\r\n]+\/\/ Antigravity 简体中文汉化补丁[\s\S]*?\/\/ =*[\r\n]+try\s*\{[\s\S]*?\}\s*catch\s*\(err\)\s*\{[\s\S]*?\}/g, '');
 
 const inlineInjection = `
 // ==========================================
 // Antigravity 简体中文汉化补丁 (内联完整注入)
 // ==========================================
 try {
-  ${patchCode}
+${patchCode}
 } catch (err) {
   console.error('[Antigravity-CN] 汉化补丁内联执行异常:', err);
 }
 `;
 
-if (!preloadContent.includes('Antigravity 简体中文汉化补丁 (内联完整注入)')) {
-  console.log('正在向 dist/preload.js 内联注入完整汉化引擎...');
-  preloadContent += '\n' + inlineInjection;
-  fs.writeFileSync(preloadPath, preloadContent, 'utf8');
-} else {
-  console.log('dist/preload.js 已包含内联汉化补丁。');
-}
+console.log('正在向 dist/preload.js 内联注入完整汉化引擎...');
+preloadContent += '\n' + inlineInjection;
+fs.writeFileSync(preloadPath, preloadContent, 'utf8');
 
 // 2. 在 dist/utils.js 里的 createWindow 中添加 did-finish-load 注入，形成双保险
 const utilsPath = path.join(targetDir, 'dist', 'utils.js');
 if (fs.existsSync(utilsPath)) {
   let utilsContent = fs.readFileSync(utilsPath, 'utf8');
-  if (!utilsContent.includes('antigravity_chinese_patch_injected')) {
+  if (!utilsContent.includes('/* antigravity_chinese_patch_injected */')) {
     console.log('正在向 dist/utils.js 注入二次保障逻辑...');
-    // 在 win.webContents.on('did-finish-load', () => { ... }) 附近加入 executeJavaScript
-    const hookCode = `
-        win.webContents.on('did-finish-load', () => {
-            void win.webContents.executeJavaScript(${JSON.stringify(patchCode)}).catch(() => {});
-        });
-    `;
     if (utilsContent.includes("win.webContents.on('did-finish-load', () => {")) {
       utilsContent = utilsContent.replace(
         "win.webContents.on('did-finish-load', () => {",
-        "win.webContents.on('did-finish-load', () => {\n            void win.webContents.executeJavaScript(" + JSON.stringify(patchCode) + ").catch(() => {});"
+        "win.webContents.on('did-finish-load', () => { /* antigravity_chinese_patch_injected */\n            void win.webContents.executeJavaScript(" + JSON.stringify(patchCode) + ").catch(() => {});"
       );
       fs.writeFileSync(utilsPath, utilsContent, 'utf8');
     }
+  } else {
+    console.log('dist/utils.js 已包含保障逻辑。');
   }
 }
 
@@ -115,6 +128,8 @@ if (fs.existsSync(menuPath)) {
       );
       fs.writeFileSync(menuPath, menuContent, 'utf8');
     }
+  } else {
+    console.log('dist/menu.js 已包含原生菜单汉化。');
   }
 }
 
@@ -129,7 +144,9 @@ if (fs.existsSync(trayPath)) {
       "countItem.label = (count > 0 ? `${count} 个正在运行的智能体` : '没有运行中的智能体');"
     );
     fs.writeFileSync(trayPath, trayContent, 'utf8');
+  } else {
+    console.log('dist/tray.js 已包含托盘菜单汉化。');
   }
 }
 
-console.log('[成功] 增强版补丁注入完毕！');
+console.log('[成功] 增强版汉化补丁注入完毕！');

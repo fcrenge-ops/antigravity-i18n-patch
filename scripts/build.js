@@ -1,12 +1,23 @@
-﻿const fs = require('fs');
+const fs = require('fs');
 const path = require('path');
 
-const dictPath = path.join(__dirname, 'dict.json');
-const outputPath = path.join(__dirname, 'chinese_patch.js');
+// 优先查找 locales/dict.json，兼容根目录 dict.json
+const rootDir = path.resolve(__dirname, '..');
+let dictPath = path.join(rootDir, 'locales', 'dict.json');
+if (!fs.existsSync(dictPath)) {
+  dictPath = path.join(rootDir, 'dict.json');
+}
+
+const distDir = path.join(rootDir, 'dist');
+const outputPath = path.join(distDir, 'chinese_patch.js');
 
 if (!fs.existsSync(dictPath)) {
-  console.error('[错误] 未找到 dict.json 文件！');
+  console.error('[错误] 未找到 dict.json 文件！请确保文件存在于 locales/dict.json');
   process.exit(1);
+}
+
+if (!fs.existsSync(distDir)) {
+  fs.mkdirSync(distDir, { recursive: true });
 }
 
 const dictData = JSON.parse(fs.readFileSync(dictPath, 'utf8'));
@@ -15,7 +26,7 @@ const dictJson = JSON.stringify(dictData, null, 2);
 const jsTemplate = `/**
  * Antigravity UI 界面全量简体中文汉化补丁
  * Antigravity Full Chinese Localization Patch
- * (由 build.js 依据 dict.json 自动构建生成)
+ * (由 scripts/build.js 依据 locales/dict.json 自动构建生成)
  */
 
 (function () {
@@ -229,4 +240,4 @@ const jsTemplate = `/**
 `;
 
 fs.writeFileSync(outputPath, jsTemplate, 'utf8');
-console.log(`[成功] 已根据 dict.json（共 ${Object.keys(dictData).length} 条词汇）重新构建生成 chinese_patch.js (${fs.statSync(outputPath).size} 字节)！`);
+console.log(`[成功] 已根据 ${path.relative(rootDir, dictPath)}（共 ${Object.keys(dictData).length} 条词汇）重新构建生成 ${path.relative(rootDir, outputPath)} (${fs.statSync(outputPath).size} 字节)！`);
