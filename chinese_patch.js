@@ -1,0 +1,666 @@
+/**
+ * Antigravity UI 界面全量简体中文汉化补丁
+ * Antigravity Full Chinese Localization Patch
+ * (由 build.js 依据 dict.json 自动构建生成)
+ */
+
+(function () {
+  'use strict';
+
+  // 1. 词典配置：精确匹配字典
+  const EXACT_DICT = {
+  "General": "通用",
+  "Application": "应用",
+  "Models": "模型",
+  "Customizations": "自定义",
+  "Not in Project": "未关联项目",
+  "Conversations": "对话列表",
+  "Shortcuts": "快捷键",
+  "Provide Feedback": "提供反馈",
+  "Provide feedback": "提供反馈",
+  "Manage project folders, agent settings, and permissions.": "管理项目文件夹、智能体设置与权限。",
+  "Folders": "文件夹",
+  "Agent Settings": "智能体设置",
+  "Agent Behavior": "智能体行为",
+  "Artifact Review Policy": "工件审查策略",
+  "Whether the agent asks you to review its documents.": "智能体生成文档工件时是否需要您进行审查。",
+  "Always Proceed": "始终继续",
+  "Full Machine": "完全访问 (Full Machine)",
+  "Full machine": "完全访问",
+  "Local Permissions": "本地权限",
+  "Global Permissions": "全局权限",
+  "Also includes Global Permissions when working in this project. Learn more.": "在该项目中工作时，同样包含全局权限。了解更多。",
+  "Also includes": "同样包含",
+  "when working in this project.": "（在此项目中工作时）。",
+  "when working in this project": "（在此项目中工作时）",
+  "Learn more": "了解更多",
+  "File Access Rules": "文件访问规则",
+  "Configure allowed and denied paths for file reads and writes.": "配置允许和禁止读写的文件路径。",
+  "Network Access Rules": "网络访问规则",
+  "Configure allowed and denied URLs for reading.": "配置允许和禁止访问的 URL 网址。",
+  "Terminal Commands": "终端命令",
+  "Configure allowed terminal commands.": "配置允许执行的终端命令。",
+  "Commands Outside Sandbox": "沙箱外命令",
+  "Configure allowed commands outside the sandbox.": "配置允许在沙箱之外执行的命令。",
+  "MCP Tools": "MCP 工具",
+  "Configure external tools via Model Context Protocol.": "通过模型上下文协议 (Model Context Protocol) 配置外部工具。",
+  "Open": "打开",
+  "Controls the actions the agent can take.": "控制智能体可以执行的操作。",
+  "Controls the actions the agent can take": "控制智能体可以执行的操作",
+  "Learn more about Full machine": "了解更多关于完全访问权限的信息",
+  "Learn more about": "了解更多关于",
+  "File": "文件",
+  "Edit": "编辑",
+  "View": "查看",
+  "Window": "窗口",
+  "Help": "帮助",
+  "Install IDE": "安装 IDE",
+  "Implementation Plan": "实现方案",
+  "Walkthrough": "交付说明",
+  "High": "高性能",
+  "Low": "低性能",
+  "Close": "关闭",
+  "Confirm": "确认",
+  "Save": "保存",
+  "Save Changes": "保存更改",
+  "Discard": "放弃",
+  "Reset": "重置",
+  "Defaults": "恢复默认",
+  "New conversation": "新建对话",
+  "New Conversation": "新建对话",
+  "Projects": "项目",
+  "Scheduled tasks": "计划任务",
+  "Scheduled Tasks": "计划任务",
+  "Skills & customizations": "技能与自定义",
+  "Skills & Customizations": "技能与自定义",
+  "Settings": "设置",
+  "Feedback": "反馈",
+  "Toggle Sidebar": "切换侧边栏",
+  "Toggle sidebar": "切换侧边栏",
+  "Collapse sidebar": "折叠侧边栏",
+  "Expand sidebar": "展开侧边栏",
+  "Conversation History": "历史对话记忆",
+  "Search conversations...": "搜索对话...",
+  "Search conversations": "搜索对话",
+  "No conversations yet": "暂无对话",
+  "Search projects...": "搜索项目...",
+  "All Projects": "所有项目",
+  "Open Project": "打开项目",
+  "Add Folder": "添加文件夹",
+  "Recent": "最近",
+  "Pinned": "已置顶",
+  "Archive": "归档",
+  "Archive project": "归档项目",
+  "Delete": "删除",
+  "Delete workspace": "删除工作区",
+  "Rename": "重命名",
+  "Pin": "置顶",
+  "Unpin": "取消置顶",
+  "Pin conversation": "置顶对话",
+  "Unpin conversation": "取消置顶",
+  "Mark all as read": "全部标记为已读",
+  "Group By Project": "按项目分组",
+  "Ask anything, @ to mention, / for actions": "输入问题，输入 @ 引用上下文，输入 / 调用指令",
+  "Ask Antigravity anything...": "向 Antigravity 提问...",
+  "Send a message...": "发送消息...",
+  "Send a message": "发送消息",
+  "Send message": "发送消息",
+  "Agent Mode": "智能体模式",
+  "Planning Mode": "规划模式",
+  "Model Selection": "模型选择",
+  "Select a model": "选择模型",
+  "Conversation Log": "会话日志",
+  "Load older messages": "加载更早的消息",
+  "Stop": "停止",
+  "Proceed": "继续",
+  "Approve": "批准",
+  "Reject": "拒绝",
+  "Cancel": "取消",
+  "Retry": "重试",
+  "Undo": "撤销",
+  "Redo": "重做",
+  "Copy": "复制",
+  "Share": "分享",
+  "Run": "运行",
+  "Ran": "已运行",
+  "Working": "执行中",
+  "Running": "运行中",
+  "Thinking...": "正在思考...",
+  "Analyzing...": "正在分析...",
+  "Running command...": "正在运行命令...",
+  "Reading file...": "正在读取文件...",
+  "Writing file...": "正在写入文件...",
+  "Completed": "已完成",
+  "Failed": "已失败",
+  "Action required": "需要操作",
+  "Always proceed": "始终继续",
+  "Request review": "请求审查",
+  "Strict": "严格模式",
+  "Proceed in sandbox": "在沙箱中继续",
+  "Command Palette": "命令面板",
+  "Paste code here": "在此粘贴代码",
+  "Search steps...": "搜索步骤...",
+  "Add MCP Servers": "添加 MCP 服务",
+  "Add MCP Server": "添加 MCP 服务",
+  "Copy debug info": "复制调试信息",
+  "Layout Controls": "布局控制",
+  "Queued Messages": "已排队消息",
+  "Show more": "显示更多",
+  "Show less": "显示更少",
+  "Collapse": "折叠",
+  "Expand": "展开",
+  "Step": "步骤",
+  "Last": "上一次",
+  "Next": "下一步",
+  "Idle": "空闲",
+  "Subagents": "子智能体",
+  "Background Tasks": "后台任务",
+  "Artifacts": "工件",
+  "Files Changed": "更改的文件",
+  "Terminals": "终端",
+  "Browser": "浏览器",
+  "No subagents running": "没有正在运行的子智能体",
+  "No background tasks": "没有后台任务",
+  "No artifacts created": "尚未创建工件",
+  "No files changed": "没有文件更改",
+  "Cancel All Tasks": "取消所有任务",
+  "Open in new tab": "在新标签页打开",
+  "Toggle Terminal": "切换终端",
+  "Clear Terminal": "清空终端",
+  "New Terminal": "新建终端",
+  "Kill Terminal": "终止终端",
+  "View Diff": "查看差异",
+  "Diff": "差异对比",
+  "Original": "原始版本",
+  "Modified": "已修改版本",
+  "Revert": "还原",
+  "Revert Change": "还原更改",
+  "Apply": "应用",
+  "Go Back in Pane": "在窗格中返回",
+  "Global Settings": "全局设置",
+  "Project Settings": "项目设置",
+  "Global": "全局",
+  "Project": "项目",
+  "Appearance": "外观",
+  "Theme Mode": "主题模式",
+  "Dark": "深色",
+  "Light": "浅色",
+  "Inherit": "跟随系统",
+  "System": "跟随系统",
+  "Conversation Width": "对话区域宽度",
+  "Compact": "紧凑",
+  "Normal": "标准",
+  "Wide": "宽屏",
+  "Tool Execution Policy": "工具执行策略",
+  "Terminal Sandbox": "终端沙箱",
+  "Non-Workspace File Access": "工作区外文件访问",
+  "Internet Access Policy": "互联网访问策略",
+  "Permission Grants": "权限授权",
+  "Command Allowlist / Denylist": "命令允许/禁止列表",
+  "Command Allowlist": "命令白名单",
+  "Command Denylist": "命令黑名单",
+  "Browser Allowlist": "浏览器允许域名",
+  "Artifact Review Mode": "工件审查模式",
+  "Notifications": "通知",
+  "App Settings": "应用设置",
+  "Keep computer awake": "保持电脑唤醒",
+  "Run in background": "在后台运行",
+  "Auto-check for updates": "自动检查更新",
+  "Allow": "允许",
+  "Ask": "询问",
+  "Deny": "拒绝",
+  "Always Allow": "总是允许",
+  "Always Deny": "总是拒绝",
+  "Security Preset": "安全预设",
+  "Editor Settings": "编辑器设置",
+  "Verbose Agent Chat": "详细 Agent 对话",
+  "Update Available": "发现新版本",
+  "Check for updates": "检查更新",
+  "Check for Updates": "检查更新",
+  "Up to date": "已是最新版本",
+  "Restart to apply update": "重启以应用更新",
+  "Download": "下载",
+  "Install": "安装",
+  "Dismiss": "忽略",
+  "Account": "账户",
+  "About": "关于",
+  "Actions": "操作",
+  "Activity": "活动",
+  "Advanced": "高级",
+  "Advanced Settings": "高级设置",
+  "Theme": "主题",
+  "Version": "版本",
+  "Skills": "技能",
+  "Rules": "规则",
+  "Workflows": "工作流",
+  "Plugins": "插件",
+  "Hooks": "生命周期钩子",
+  "MCP Servers": "MCP 服务",
+  "Sidecars": "Sidecar 侧车服务",
+  "Add Skill": "添加技能",
+  "Add Rule": "添加规则",
+  "Add Plugin": "添加插件",
+  "Installed": "已安装",
+  "Available": "可用",
+  "Global Customizations": "全局自定义",
+  "Project Customizations": "项目自定义",
+  "Sandbox Only": "仅沙箱",
+  "Read Only": "仅只读",
+  "Request Review": "请求审查",
+  "Strict Review": "严格审查",
+  "Agent Decides": "智能体自主决定",
+  "Ask Every Time": "每次都询问",
+  "Always Ask": "总是询问",
+  "Display detailed thought processes and tool execution results in chat.": "在对话中显示详细的思考过程和工具执行结果。",
+  "Run agent commands inside a restricted sandbox environment for added security.": "在受限沙箱环境中执行智能体命令，增强安全性。",
+  "Controls whether the agent can read or write files outside the current workspace root": "控制智能体是否可以读写当前工作区根目录之外的文件",
+  "Controls whether the agent can make network requests": "控制智能体是否可以发起网络请求",
+  "Enable system notifications on task completion.": "在任务完成时发送系统桌面通知。",
+  "Keep your system awake while tasks are running.": "在任务执行期间防止电脑进入睡眠状态。",
+  "Continue running in the background when window is closed.": "窗口关闭时继续在后台运行。",
+  "Automatically check for new versions of Antigravity.": "自动检查并提示 Antigravity 软件更新。",
+  "Configure the agent's visual theme and display preferences.": "配置智能体的视觉主题与显示偏好设置。",
+  "Chat Settings": "对话设置",
+  "Display and preserve intermediate thinking steps.": "显示并保留中间的思考步骤。",
+  "Configure the maximum width of the conversation panel.": "配置对话面板的最大宽度。",
+  "Narrow": "紧凑",
+  "Default": "默认",
+  "Dark Theme": "深色主题",
+  "Light Theme": "浅色主题",
+  "Preset": "预设",
+  "Default Dark": "默认深色",
+  "Default Light": "默认浅色",
+  "Background": "背景色",
+  "Foreground": "前景色",
+  "Accent": "强调色",
+  "Markdown Artifact Width": "Markdown 工件宽度",
+  "Configure the default width of markdown artifacts.": "配置 Markdown 工件的默认宽度。",
+  "Table Width": "表格宽度",
+  "Configure the default width of tables.": "配置表格的默认宽度。",
+  "Large": "较大",
+  "Fill": "填满",
+  "Container": "容器宽度",
+  "Content": "内容自适应",
+  "Execution": "执行设置",
+  "Tables": "表格",
+  "Suggestions in Editor": "编辑器代码建议",
+  "Show code completions as you type in the editor.": "在编辑器中输入时显示代码补全建议。",
+  "Prevent Sleep": "防止系统睡眠",
+  "Prevent the computer from sleeping while the app is running.": "应用运行期间防止电脑进入睡眠状态。",
+  "Keep In Menu Bar": "保持在托盘/菜单栏",
+  "Keep the app accessible from the menu bar and running in the background when all windows are closed.": "窗口全部关闭后，保持应用在后台及系统托盘中运行。",
+  "Automatic Check for Updates": "自动检查更新",
+  "Automatically prompt you to restart the app when a new update is available. When disabled, you can check for updates manually from the app menu.": "发现新版本时自动提示重启更新。禁用后可手动从菜单检查更新。",
+  "Enable Remote Control": "启用远程控制",
+  "Manage your conversations from the companion website.": "通过配套网页端管理和同步您的对话。",
+  "Work with local agents from another device.": "从其他设备与本地智能体进行交互协作。",
+  "Device Name": "设备名称",
+  "A label for this computer when you connect from another device. Changing it reconnects.": "从其他设备连接此电脑时显示的标识名称。修改将重新连接。",
+  "Nickname": "昵称",
+  "A nickname for identifying this application in the companion website. Changing this will restart the connection.": "在配套网页端识别此应用的别名。修改将重新建立连接。",
+  "Conversation Sharing": "会话共享",
+  "Inline Actions": "内联快捷操作卡片",
+  "Show a floating notification card when background conversations need your input. Answer questions, approve commands, and grant permissions without leaving your current conversation. Share feedback at go/inline-actions-feedback.": "当后台对话需要输入时显示悬浮卡片。无需切换即可回答、批准命令或授权。",
+  "Workspaces": "工作区",
+  "Access grants": "访问授权",
+  "Read Files": "读取文件",
+  "Write Files": "写入文件",
+  "Read URLs": "读取网址",
+  "Execute URLs": "执行网页操作",
+  "File Reads": "文件读取授权",
+  "File Writes": "文件写入授权",
+  "GitHub": "GitHub 策略",
+  "Configure GitHub access policies.": "配置 GitHub 访问与授权策略。",
+  "Outside of folders file access policy": "工作区外文件访问策略",
+  "Configures how the agent tries to access files outside of its working folders.": "配置智能体访问工作区文件夹外文件时的权限处理策略。",
+  "Terminal Command Auto Execution": "终端命令自动执行策略",
+  "Controls whether terminal commands require your approval before running.": "控制终端命令在执行前是否需要您的审查批准。",
+  "Enable Sandbox Mode (Preview)": "启用沙箱模式 (预览)",
+  "Restricts agent tools to a secure, isolated local sandbox.": "将智能体工具限制在安全隔离的本地沙箱环境中执行。",
+  "Sandbox Allow Network": "沙箱允许网络访问",
+  "When enabled, sandboxed commands are allowed to make network requests.": "启用后，允许沙箱内执行的命令发起外部网络请求。",
+  "Enable Shell Integration": "启用 Shell 集成",
+  "When enabled, Agent will use IDE's shell integration to detect and report terminal command execution.": "启用后，智能体将利用 IDE 的 Shell 集成特性来检测并回报终端命令状态。",
+  "Auto-Open Edited Files": "自动打开编辑的文件",
+  "Open files in the background if Agent creates or edits them": "当智能体创建或修改文件时，在后台自动打开它们。",
+  "Agent Auto-Fix Lints": "智能体自动修复代码规范",
+  "When enabled, Agent is given awareness of lint errors created by its edits and may fix them without explicit user prompting.": "启用后，智能体将自动识别修改引入的代码规范错误并在无需提问的情况下自动修复。",
+  "When enabled, the agent will be able to access past conversations to inform its responses.": "启用后，智能体将能够参考以往的历史对话来提供更准确的回答。",
+  "Knowledge": "知识库",
+  "When enabled, the agent will be able to access its knowledge base to inform its responses and automatically generate knowledge items in the background.": "启用后，智能体能够检索知识库辅助回复，并在后台自动生成知识条目。",
+  "Explain and Fix in Current Conversation": "在当前对话中解释并修复",
+  "When enabled, 'Explain and Fix' actions will continue in the current conversation instead of starting a new one.": "启用后，“解释并修复”操作将在当前会话中继续进行，而不是新开对话。",
+  "Open Agent on Reload": "重载时打开智能体面板",
+  "Open Agent panel on window reload": "窗口重新加载时自动开启智能体面板。",
+  "Enable Sounds for Agent": "启用操作提示音",
+  "When enabled, Antigravity will play a sound when Agent finishes generating a response.": "启用后，智能体完成回复生成时将播放提示音。",
+  "Auto-Expand Changes Overview": "自动展开更改概览",
+  "When enabled, the Changes Overview toolbar will automatically expand when Agent finishes generating a response.": "启用后，智能体完成回答时将自动展开文件更改概览面板。",
+  "Include Jetski Default Customizations": "包含内置默认自定义配置",
+  "When enabled, the agent will include default customizations, including default skills.": "启用后，智能体将加载系统默认的扩展技能与配置。",
+  "Build With Google Plugins": "Build With Google 官方插件",
+  "Browse and enable plugins from the Build With Google catalog.": "浏览并启用官方插件目录中的扩展插件。",
+  "Manage Hooks": "管理生命周期钩子",
+  "Configure hooks that run on agent lifecycle events.": "配置在智能体各个生命周期阶段触发执行的钩子。",
+  "Command Setup Script": "命令初始化脚本",
+  "A shell setup script run before every command the agent executes in this project. Overrides the global script.": "在此项目中智能体执行每个命令前预先运行的 Shell 脚本（覆盖全局）。",
+  "A shell setup script run before every command the agent executes.": "智能体每次执行命令前预先运行的全局 Shell 环境初始化脚本。",
+  "Browser Javascript Execution Policy": "浏览器 JavaScript 执行策略",
+  "Controls whether the agent can run custom JavaScript to automate complex browser actions.": "控制智能体是否可以在自动化浏览器中运行自定义 JavaScript 脚本。",
+  "Chrome Binary Path": "Chrome 可执行程序路径",
+  "Path to the Chrome/Chromium executable. Leave empty for auto-detection.": "Chrome/Chromium 可执行文件路径，留空则自动检测。",
+  "Browser User Profile Path": "浏览器用户数据目录",
+  "Browser CDP Port": "浏览器 CDP 调试端口",
+  "Port number for Chrome DevTools Protocol remote debugging. Leave empty for default (9222).": "Chrome 开发者协议远程调试端口，留空默认使用 9222。",
+  "Browser Actuation Rules": "浏览器自动化规则",
+  "Configure allowed and denied URLs for browser actuation.": "配置允许或禁止智能体进行浏览器交互的 URL 网址。",
+  "Vetted (Preview)": "审核模式 (预览)",
+  "A Gemini-powered security agent decides if commands should be auto-approved.": "由 Gemini 驱动的安全智能体自动判断命令是否可以安全执行。",
+  "Agent always asks for review.": "智能体在执行操作前始终请求您的审查。",
+  "Agent never asks for review. This maximizes the autonomy of the Agent, but also has the highest risk of the Agent operating over unsafe or injected Artifact content.": "智能体从不请求审查。这能最大化智能体自主性，但也有最高的操作风险。",
+  "Agent terminated due to error": "智能体因错误终止运行",
+  "Agents": "智能体",
+  "All": "全部",
+  "None": "无",
+  "Enable": "启用",
+  "Disable": "禁用",
+  "Enabled": "已启用",
+  "Disabled": "已禁用",
+  "Active": "已激活",
+  "Inactive": "未激活",
+  "Custom": "自定义",
+  "Configure the agent's visual theme and display preferences": "配置智能体的视觉主题与显示偏好设置",
+  "Reset to preset": "重置为预设",
+  "Clear chat": "清空对话",
+  "Export conversation": "导出对话",
+  "Import conversation": "导入对话",
+  "Fork conversation": "创建对话分支",
+  "Delete conversation": "删除对话",
+  "Rename conversation": "重命名对话",
+  "Share conversation": "分享对话",
+  "Conversation details": "对话详情",
+  "Conversation title": "对话标题",
+  "Copy code": "复制代码",
+  "Copied!": "已复制！",
+  "Insert at cursor": "在光标处插入",
+  "Apply changes": "应用更改",
+  "Discard changes": "放弃更改",
+  "View changes": "查看更改",
+  "Review changes": "审查更改",
+  "Show diff": "显示差异对比",
+  "Hide diff": "隐藏差异对比",
+  "Accept all": "全部接受",
+  "Reject all": "全部拒绝",
+  "Generating response...": "正在生成回答...",
+  "Executing tool...": "正在执行工具...",
+  "Indexing codebase...": "正在构建代码索引...",
+  "Searching codebase...": "正在搜索代码库...",
+  "Searching web...": "正在搜索网络...",
+  "Running terminal command...": "正在执行终端命令...",
+  "Waiting for review...": "正在等待审查...",
+  "Awaiting confirmation...": "等待用户确认...",
+  "Approved": "已批准",
+  "Rejected": "已拒绝",
+  "Keyboard Shortcuts": "键盘快捷键",
+  "Search anything...": "搜索任意内容...",
+  "Switch workspace": "切换工作区",
+  "Add folder to workspace": "向工作区添加文件夹",
+  "Remove folder": "移除文件夹",
+  "Open in terminal": "在终端中打开",
+  "Reveal in explorer": "在资源管理器中显示",
+  "Reveal in finder": "在访达中显示",
+  "Configure MCP": "配置 MCP",
+  "Reload MCP": "重新加载 MCP",
+  "Installed Extensions": "已安装的扩展",
+  "Available Extensions": "可用的扩展",
+  "No extensions installed": "未安装任何扩展",
+  "Save and Close": "保存并关闭",
+  "OK": "确定",
+  "Done": "完成",
+  "Back": "返回",
+  "Previous": "上一步",
+  "Finish": "完成",
+  "Reload": "重新加载",
+  "Restart": "重启",
+  "Status": "状态",
+  "Details": "详情",
+  "More options": "更多选项",
+  "Add Hook Card": "添加 Hook Card",
+  "Add MCP server": "添加 MCP server",
+  "Add Workspace": "添加 Workspace",
+  "Add inline comment": "添加 inline comment",
+  "Add to Chat": "添加 to Chat",
+  "Add to Chat/Quote": "添加 to Chat/Quote",
+  "Concierge voice message failed": "Concierge voice message 失败",
+  "Delete ABFS Workspace": "删除 ABFS Workspace",
+  "Delete Conversation": "删除 Conversation",
+  "Delete Handler": "删除 Handler",
+  "Delete Hook": "删除 Hook",
+  "Delete MCP Server": "删除 MCP Server",
+  "Delete Permanently": "删除 Permanently",
+  "Delete Skill": "删除 Skill",
+  "Delete Task": "删除 Task",
+  "Edit Conversation Title": "编辑 Conversation Title",
+  "Enable AI Credit Overages": "启用 AI Credit Overages",
+  "Enable Browser Tools": "启用 Browser Tools",
+  "Enable Chat": "启用 Chat",
+  "Enable Demo Mode (Beta)": "启用 Demo Mode (Beta)",
+  "Enable Notifications": "启用 Notifications",
+  "Enable Notifications for Agent": "启用 Notifications for Agent",
+  "Enable Overages": "启用 Overages",
+  "Enable Telemetry": "启用 Telemetry",
+  "Enable Terminal Sandbox": "启用 Terminal Sandbox",
+  "Remove From Split": "移除 From Split",
+  "Remove from Group": "移除 from Group",
+  "Show Selection Actions": "显示 Selection Actions",
+  "Show browser notifications when your action is needed or execution finishes.": "显示 browser notifications when your action is needed or execution finishes.",
+  "Show more results": "显示 more results",
+  "Show suggestions when typing in the editor": "显示 suggestions when typing in the editor",
+  "View Debug": "查看 Debug",
+  "View Page": "查看 Page",
+  "View child subagents": "查看 child subagents",
+  "view full search results": "查看 full search results"
+};
+
+  // 2. 正则动态匹配规则（处理数字、相对时间、前缀短句）
+  const REGEX_RULES = [
+    { pattern: /^Thought for (\d+)(s|m|h)$/i, replace: '思考耗时 $1$2' },
+    { pattern: /^Worked for (\d+)(s|m|h)$/i, replace: '工作耗时 $1$2' },
+    { pattern: /^Updated\s+(\d{1,2}:\d{2})$/i, replace: '更新于 $1' },
+    { pattern: /^(\d+)\s+commands?$/i, replace: '$1 条命令' },
+    { pattern: /^(\d+)\s+conversations?$/i, replace: '$1 个对话' },
+    { pattern: /^(\d+)\s+tasks?$/i, replace: '$1 个任务' },
+    { pattern: /^(\d+)\s+files?\s+changed$/i, replace: '$1 个文件已更改' },
+    { pattern: /^(\d+)\s+subagents?$/i, replace: '$1 个子智能体' },
+    { pattern: /^(\d+)m\s+ago$/i, replace: '$1 分钟前' },
+    { pattern: /^(\d+)h\s+ago$/i, replace: '$1 小时前' },
+    { pattern: /^(\d+)d\s+ago$/i, replace: '$1 天前' },
+    { pattern: /^Just now$/i, replace: '刚刚' },
+    { pattern: /^Yesterday$/i, replace: '昨天' },
+    { pattern: /Learn more about (.*)/i, replace: '了解更多关于 $1 的信息' },
+    { pattern: /Controls the actions the agent can take\.?/i, replace: '控制智能体可以执行的操作。' },
+    { pattern: /Whether the agent asks you to review its documents\.?/i, replace: '智能体生成文档工件时是否需要您进行审查。' },
+  ];
+
+  // 3. 需排除的标签与类名（保护代码、终端与用户输入文本）
+  const EXCLUDED_TAGS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'CODE', 'PRE', 'TEXTAREA']);
+  const EXCLUDED_CLASSES = [
+    'monaco-editor',
+    'monaco-diff-editor',
+    'terminal',
+    'xterm',
+    'hljs',
+    'prism-code',
+    'code-block',
+  ];
+
+  function shouldSkipElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return false;
+    if (EXCLUDED_TAGS.has(element.tagName)) return true;
+    if (element.isContentEditable) return true;
+    
+    const className = element.className;
+    if (typeof className === 'string') {
+      for (let i = 0; i < EXCLUDED_CLASSES.length; i++) {
+        if (className.includes(EXCLUDED_CLASSES[i])) return true;
+      }
+    }
+
+    if (element.hasAttribute('data-lexical-editor') || element.hasAttribute('data-slate-editor')) {
+      return true;
+    }
+
+    return false;
+  }
+
+  function translateText(text) {
+    if (!text || typeof text !== 'string') return text;
+    const trimmed = text.trim();
+    if (!trimmed || trimmed.length > 500) return text;
+
+    // 1. 精确匹配
+    if (EXACT_DICT.hasOwnProperty(trimmed)) {
+      const translated = EXACT_DICT[trimmed];
+      return text.replace(trimmed, translated);
+    }
+
+    // 2. 正则规则匹配
+    for (let i = 0; i < REGEX_RULES.length; i++) {
+      const rule = REGEX_RULES[i];
+      if (rule.pattern.test(trimmed)) {
+        return text.replace(trimmed, trimmed.replace(rule.pattern, rule.replace));
+      }
+    }
+
+    return text;
+  }
+
+  function translateAttributes(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return;
+
+    const attrs = ['placeholder', 'title', 'aria-label', 'data-tooltip'];
+    for (let i = 0; i < attrs.length; i++) {
+      const attr = attrs[i];
+      const val = element.getAttribute(attr);
+      if (val) {
+        const translated = translateText(val);
+        if (translated !== val) {
+          element.setAttribute(attr, translated);
+        }
+      }
+    }
+  }
+
+  const translatedNodes = new WeakSet();
+
+  function processNode(node) {
+    if (!node) return;
+
+    if (node.nodeType === Node.TEXT_NODE) {
+      if (translatedNodes.has(node)) return;
+      const parent = node.parentElement;
+      if (parent && shouldSkipElement(parent)) return;
+
+      const origin = node.nodeValue;
+      if (origin && origin.trim()) {
+        const translated = translateText(origin);
+        if (translated !== origin) {
+          translatedNodes.add(node);
+          node.nodeValue = translated;
+        }
+      }
+      return;
+    }
+
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      if (shouldSkipElement(node)) return;
+
+      translateAttributes(node);
+
+      let child = node.firstChild;
+      while (child) {
+        processNode(child);
+        child = child.nextSibling;
+      }
+    }
+  }
+
+  let pendingNodes = [];
+  let isScheduled = false;
+
+  function flushPendingNodes() {
+    isScheduled = false;
+    const nodes = pendingNodes;
+    pendingNodes = [];
+    for (let i = 0; i < nodes.length; i++) {
+      processNode(nodes[i]);
+    }
+  }
+
+  function scheduleNode(node) {
+    pendingNodes.push(node);
+    if (!isScheduled) {
+      isScheduled = true;
+      if (window.requestAnimationFrame) {
+        window.requestAnimationFrame(flushPendingNodes);
+      } else {
+        setTimeout(flushPendingNodes, 16);
+      }
+    }
+  }
+
+  function initObserver() {
+    const observer = new MutationObserver((mutations) => {
+      for (let i = 0; i < mutations.length; i++) {
+        const mutation = mutations[i];
+        if (mutation.type === 'childList') {
+          for (let j = 0; j < mutation.addedNodes.length; j++) {
+            scheduleNode(mutation.addedNodes[j]);
+          }
+        } else if (mutation.type === 'characterData') {
+          scheduleNode(mutation.target);
+        }
+      }
+    });
+
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+
+    processNode(document.body || document.documentElement);
+  }
+
+  function injectChineseFont() {
+    try {
+      if (document.getElementById('antigravity-chinese-font')) return;
+      const style = document.createElement('style');
+      style.id = 'antigravity-chinese-font';
+      style.textContent = `
+        body, button, input, select, textarea {
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif !important;
+        }
+        code, pre, .terminal, .monaco-editor {
+          font-family: Consolas, "Cascadia Code", monospace !important;
+        }
+      `;
+      (document.head || document.documentElement).appendChild(style);
+    } catch (e) {
+      console.error('[Antigravity-CN] 字体注入失败:', e);
+    }
+  }
+
+  function initialize() {
+    injectChineseFont();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        initObserver();
+      });
+    } else {
+      initObserver();
+    }
+  }
+
+  initialize();
+})();

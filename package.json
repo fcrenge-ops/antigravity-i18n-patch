@@ -1,0 +1,19 @@
+﻿{
+  "name": "antigravity-chinese-patch",
+  "version": "2.0.0",
+  "description": "Antigravity 2.0 桌面客户端全量简体中文汉化补丁套件",
+  "main": "chinese_patch.js",
+  "scripts": {
+    "build": "node build.js",
+    "install-patch": "powershell -ExecutionPolicy Bypass -File ./install_patch.ps1",
+    "restore": "powershell -ExecutionPolicy Bypass -File ./restore_original.ps1"
+  },
+  "keywords": [
+    "antigravity",
+    "chinese-patch",
+    "i18n",
+    "localization"
+  ],
+  "author": "Antigravity User",
+  "license": "MIT"
+}
