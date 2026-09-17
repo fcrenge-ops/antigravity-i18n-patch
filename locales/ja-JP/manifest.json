@@ -1,0 +1,13 @@
+{
+  "id": "ja-JP",
+  "name": "日本語",
+  "nativeName": "日本語 (Japanese)",
+  "version": "2.0.0",
+  "author": "Antigravity i18n Community",
+  "description": "Antigravity 2.0 デスクトップクライアント公式日本語ローカライズパッケージ",
+  "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"Meiryo\", \"Hiragino Kaku Gothic ProN\", \"Yu Gothic\", sans-serif !important",
+  "tray": {
+    "runningTemplate": "{count} 個のエージェントが実行中",
+    "noAgents": "実行中のエージェントはありません"
+  }
+}

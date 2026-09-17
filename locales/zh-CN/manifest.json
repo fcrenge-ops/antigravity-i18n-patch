@@ -1,0 +1,13 @@
+{
+  "id": "zh-CN",
+  "name": "简体中文",
+  "nativeName": "简体中文 (Simplified Chinese)",
+  "version": "2.0.0",
+  "author": "Antigravity Community",
+  "description": "Antigravity 2.0 桌面客户端全量简体中文汉化语言包",
+  "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif !important",
+  "tray": {
+    "runningTemplate": "{count} 个正在运行的智能体",
+    "noAgents": "没有运行中的智能体"
+  }
+}

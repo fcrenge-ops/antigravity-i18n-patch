@@ -1,52 +1,7 @@
-const fs = require('fs');
-const path = require('path');
-const localeManager = require('./locale_manager');
-
-const rootDir = path.resolve(__dirname, '..');
-const distDir = path.join(rootDir, 'dist');
-
-if (!fs.existsSync(distDir)) {
-  fs.mkdirSync(distDir, { recursive: true });
-}
-
-// 解析命令行参数
-const argv = process.argv.slice(2);
-function getArgValue(arg) {
-  const index = argv.indexOf(arg);
-  if (index !== -1 && index + 1 < argv.length) {
-    return argv[index + 1];
-  }
-  return null;
-}
-
-const targetLang = getArgValue('--lang') || getArgValue('-l');
-const buildAll = argv.includes('--all') || !targetLang;
-
-function serializeRules(rules) {
-  if (!rules || !rules.length) return '[]';
-  const items = rules.map((r) => {
-    const pat = r.pattern ? r.pattern.toString() : '/^$/';
-    let rep;
-    if (typeof r.replace === 'function') {
-      rep = r.replace.toString();
-    } else {
-      rep = JSON.stringify(r.replace || '');
-    }
-    return `    { pattern: ${pat}, replace: ${rep} }`;
-  });
-  return `[\n${items.join(',\n')}\n  ]`;
-}
-
-function generatePatchCode(localeData) {
-  const { meta, dict, rules } = localeData;
-  const dictJson = JSON.stringify(dict, null, 2);
-  const serializedRules = serializeRules(rules);
-  const fontFamily = meta.fontFamily || '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important';
-
-  return `/**
- * Antigravity UI 界面多语言国际化补丁 [${meta.id} - ${meta.nativeName}]
+/**
+ * Antigravity UI 界面多语言国际化补丁 [en-US - English (US)]
  * Antigravity UI Multi-Language i18n Patch
- * (由 scripts/build.js 依据 locales/${meta.id} 自动构建生成)
+ * (由 scripts/build.js 依据 locales/en-US 自动构建生成)
  */
 
 (function () {
@@ -55,14 +10,14 @@ function generatePatchCode(localeData) {
   if (typeof window !== 'undefined') {
     if (window.__antigravity_i18n_patch_loaded__) return;
     window.__antigravity_i18n_patch_loaded__ = true;
-    window.__antigravity_i18n_lang__ = ${JSON.stringify(meta.id)};
+    window.__antigravity_i18n_lang__ = "en-US";
   }
 
-  // 1. 词典配置：精确匹配字典 (${Object.keys(dict).length} 条)
-  const EXACT_DICT = ${dictJson};
+  // 1. 词典配置：精确匹配字典 (0 条)
+  const EXACT_DICT = {};
 
   // 2. 正则动态匹配规则（处理数字、相对时间、前缀短句、配额与积分）
-  const REGEX_RULES = ${serializedRules};
+  const REGEX_RULES = [];
 
   // 3. 需排除的标签与类名（保护代码、终端与用户输入文本）
   const EXCLUDED_TAGS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'CODE', 'PRE', 'TEXTAREA']);
@@ -231,14 +186,14 @@ function generatePatchCode(localeData) {
       if (document.getElementById('antigravity-i18n-font')) return;
       const style = document.createElement('style');
       style.id = 'antigravity-i18n-font';
-      style.textContent = \`
+      style.textContent = `
         body, button, input, select, textarea {
-          font-family: ${fontFamily};
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif !important;
         }
         code, pre, .terminal, .monaco-editor {
           font-family: Consolas, "Cascadia Code", monospace !important;
         }
-      \`;
+      `;
       (document.head || document.documentElement).appendChild(style);
     } catch (e) {
       console.error('[Antigravity-i18n] 字体注入失败:', e);
@@ -258,58 +213,3 @@ function generatePatchCode(localeData) {
 
   initialize();
 })();
-`;
-}
-
-function buildLocale(langId) {
-  const localeData = localeManager.loadLocale(langId);
-  const patchCode = generatePatchCode(localeData);
-  const outFileName = `patch-${localeData.meta.id}.js`;
-  const outPath = path.join(distDir, outFileName);
-
-  fs.writeFileSync(outPath, patchCode, 'utf8');
-  console.log(`[成功] 已为 [${localeData.meta.id}] (${localeData.meta.nativeName}) 构建补丁: ${path.relative(rootDir, outPath)} (${fs.statSync(outPath).size} 字节，词汇 ${Object.keys(localeData.dict).length} 条)`);
-
-  // 针对 zh-CN，同时保留并更新旧产物 dist/chinese_patch.js 保证完全向下兼容
-  if (localeData.meta.id === 'zh-CN') {
-    const legacyOutPath = path.join(distDir, 'chinese_patch.js');
-    fs.writeFileSync(legacyOutPath, patchCode, 'utf8');
-    console.log(`[兼容] 已同步更新兼容产物: ${path.relative(rootDir, legacyOutPath)}`);
-  }
-
-  return outPath;
-}
-
-function main() {
-  console.log('====================================================');
-  console.log('       Antigravity 多语言 i18n 补丁构建编译工具     ');
-  console.log('====================================================');
-
-  const available = localeManager.getAvailableLocales();
-  if (!available.length) {
-    console.error('[错误] 未在 locales/ 目录下扫描到任何有效语言包！');
-    process.exit(1);
-  }
-
-  if (targetLang) {
-    buildLocale(targetLang);
-  } else {
-    console.log(`[信息] 开始全量构建所有语言包 (${available.length} 个)...`);
-    for (const item of available) {
-      buildLocale(item.id);
-    }
-  }
-
-  console.log('====================================================');
-  console.log('[完成] 补丁构建编译任务全部完成！');
-  console.log('====================================================\n');
-}
-
-if (require.main === module) {
-  main();
-}
-
-module.exports = {
-  buildLocale,
-  generatePatchCode,
-};

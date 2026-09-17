@@ -1,20 +1,26 @@
 {
-  "name": "antigravity-chinese-patch",
-  "version": "2.0.0",
-  "description": "Antigravity 2.0 桌面客户端全量简体中文汉化补丁套件",
+  "name": "antigravity-i18n-patch",
+  "version": "2.1.0",
+  "description": "Antigravity 2.0 桌面客户端多语言 (i18n) 本地化补丁套件",
   "main": "dist/chinese_patch.js",
   "scripts": {
-    "build": "node scripts/build.js",
-    "install-patch": "powershell -ExecutionPolicy Bypass -File ./scripts/install_patch.ps1",
-    "restore": "powershell -ExecutionPolicy Bypass -File ./scripts/restore_original.ps1",
-    "check": "node scripts/check_missing.js"
+    "build": "node scripts/build.js --all",
+    "build:zh-CN": "node scripts/build.js --lang zh-CN",
+    "build:zh-TW": "node scripts/build.js --lang zh-TW",
+    "build:ja-JP": "node scripts/build.js --lang ja-JP",
+    "install-patch": "node scripts/install.js",
+    "restore": "node scripts/restore.js",
+    "check": "node scripts/check_missing.js --lang zh-CN",
+    "check:ja-JP": "node scripts/check_missing.js --lang ja-JP"
   },
   "keywords": [
     "antigravity",
+    "i18n-patch",
     "chinese-patch",
     "i18n",
-    "localization"
+    "localization",
+    "translation"
   ],
-  "author": "Antigravity User",
+  "author": "fcrenge-ops",
   "license": "MIT"
 }
