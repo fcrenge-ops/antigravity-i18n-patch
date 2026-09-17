@@ -88,6 +88,9 @@ antigravity-i18n-patch/
 │   ├── README.ja.md               # Japanese documentation
 │   └── README.zh-TW.md            # Traditional Chinese documentation
 ├── package.json                   # NPM configuration and script commands
+├── CHANGELOG.md                   # Release history and changelog
+├── CONTRIBUTING.md                # Open source contribution guide
+├── LICENSE                        # MIT License
 ├── .gitignore
 └── README.md                      # Main documentation (Simplified Chinese)
 ```

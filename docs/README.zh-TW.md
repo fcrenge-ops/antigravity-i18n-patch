@@ -87,6 +87,9 @@ antigravity-i18n-patch/
 │   ├── README.ja.md               # 日文說明文件 (日本語)
 │   └── README.zh-TW.md            # 繁體中文說明文件
 ├── package.json                   # NPM 專案管理與快捷指令
+├── CHANGELOG.md                   # 版本發布與更新履歷
+├── CONTRIBUTING.md                # 開源貢獻指南
+├── LICENSE                        # MIT 開源授權條款
 ├── .gitignore
 └── README.md                      # 專案主說明文件 (簡體中文)
 ```

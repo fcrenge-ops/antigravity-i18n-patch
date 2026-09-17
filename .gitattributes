@@ -1,2 +1,11 @@
+# 确保 Windows 批处理脚本始终使用 CRLF
 *.bat text eol=crlf
 *.cmd text eol=crlf
+
+# 确保 Unix Shell 脚本始终使用 LF，防止在 Linux/macOS 报错 \r: command not found
+*.sh text eol=lf
+
+# 确保 JSON 和 JS 等源码文件使用 LF 跨平台一致
+*.json text eol=lf
+*.js text eol=lf
+*.md text eol=lf

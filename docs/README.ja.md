@@ -131,6 +131,9 @@ antigravity-i18n-patch/
 │   ├── README.ja.md               # 日本語ドキュメント
 │   └── README.zh-TW.md            # 繁体字中国語ドキュメント
 ├── package.json
+├── CHANGELOG.md                   # 更新履歴 (Changelog)
+├── CONTRIBUTING.md                # コントリビューションガイド
+├── LICENSE                        # MIT ライセンス
 └── README.md                      # 簡体字中国語ドキュメント (メイン)
 ```
 
