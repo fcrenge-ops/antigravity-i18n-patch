@@ -33,16 +33,14 @@ antigravity-chinese-patch/
 │   ├── dict.json                  # 核心中英对照字典 (主维护词库)
 │   ├── extracted_strings.json     # 从客户端抽取的全量英文 UI 词条清单
 │   └── missing_strings.json       # 尚未汉化的待补充词条清单 (由 check 脚本自动更新)
-├── scripts/                       # 核心构建与注入脚本
+├── scripts/                       # 核心执行、构建与注入脚本统一收拢目录
+│   ├── install.bat                # 【双击即用】Windows 批处理一键安装/更新脚本
+│   ├── restore.bat                # 【双击即用】Windows 批处理一键还原官方英文脚本
+│   ├── install_patch.ps1          # 自动化安装汉化核心脚本 (备份、解包、注入、封包、替换)
+│   ├── restore_original.ps1       # 自动化还原官方原版核心脚本
 │   ├── apply_patch.js             # Electron ASAR 解包注入主逻辑 (preload/utils/menu/tray)
 │   ├── build.js                   # 字典编译构建脚本 (将 locales/dict.json 编译为 dist/chinese_patch.js)
-│   ├── check_missing.js           # 词条比对与覆盖率统计分析工具
-│   ├── install_patch.ps1          # 自动化安装汉化核心脚本 (备份、解包、注入、封包、替换)
-│   └── restore_original.ps1       # 自动化还原官方原版核心脚本
-├── install.bat                    # 【推荐】Windows 资源管理器双击一键安装
-├── restore.bat                    # 【推荐】Windows 资源管理器双击一键还原
-├── install_patch.ps1              # 根目录便捷入口 (透传调用 scripts/install_patch.ps1)
-├── restore_original.ps1           # 根目录便捷入口 (透传调用 scripts/restore_original.ps1)
+│   └── check_missing.js           # 词条比对与覆盖率统计分析工具
 ├── package.json                   # NPM 工程管理与快捷指令配置
 ├── .gitignore                     # Git 忽略配置
 └── README.md                      # 本项目说明文档
@@ -54,24 +52,26 @@ antigravity-chinese-patch/
 
 ### 方式一：Windows 桌面双击（最推荐）
 
-1. **安装 / 更新汉化**：直接双击运行项目根目录下的 **`install.bat`**。
+所有可执行快捷脚本统一存放于 **`scripts/`** 目录中：
+
+1. **安装 / 更新汉化**：进入 `scripts/` 目录，直接双击运行 **`install.bat`**。
    - 脚本会自动检测 Antigravity 运行状态并提示关闭。
-   - 自动执行依赖检查、官方原版备份、补丁注入与 ASAR 重新封包。
+   - 自动执行依赖检查、官方原版备份、补丁构建、注入与 ASAR 重新封包。
    - 安装完成后可直接选择启动 Antigravity 查看效果。
-2. **还原官方原版**：随时双击运行根目录下的 **`restore.bat`** 即可秒级还原为纯英文官方版本。
+2. **还原官方原版**：随时双击运行 `scripts/` 目录下的 **`restore.bat`** 即可秒级还原为纯英文官方版本。
 
 ---
 
 ### 方式二：PowerShell 命令行
 
-打开 PowerShell（无需特别提升为管理员权限），执行：
+在项目根目录下打开 PowerShell（无需特别提升为管理员权限），执行：
 
 ```powershell
 # 一键安装 / 更新汉化
-powershell -ExecutionPolicy Bypass -File .\install_patch.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\install_patch.ps1
 
 # 一键还原为官方英文版
-powershell -ExecutionPolicy Bypass -File .\restore_original.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\restore_original.ps1
 ```
 
 > **提示**：脚本会自动扫描常用安装路径（默认 `$env:LOCALAPPDATA\Programs\antigravity`）。若安装在非默认目录，脚本会交互式引导输入路径。
@@ -80,7 +80,7 @@ powershell -ExecutionPolicy Bypass -File .\restore_original.ps1
 
 ### 方式三：NPM 快捷命令
 
-对于习惯使用 Node.js / NPM 的开发者：
+对于习惯使用 Node.js / NPM 的开发者，在根目录下直接执行：
 
 ```bash
 # 一键安装 / 更新补丁
@@ -109,8 +109,8 @@ npm run check
      "Allow Once": "本次允许"
    }
    ```
-2. 保存后，直接运行 `npm run build`（或直接运行 `install.bat`，安装脚本会自动检测词典更新并自动编译）。
-3. 运行 `install.bat`（或 `npm run install-patch`）重新打包生效。
+2. 保存后，直接运行 `npm run build`（或运行 `scripts/install.bat`，安装脚本会自动检测词典更新并自动重新编译）。
+3. 运行 `scripts/install.bat`（或 `npm run install-patch`）重新打包生效。
 
 ### 2. 统计汉化覆盖率并提取未翻译词条
 
