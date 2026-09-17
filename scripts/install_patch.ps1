@@ -171,15 +171,27 @@ Write-Host "• 若需还原官方英文版，随时运行 restore.bat 或 resto
 Write-Host ""
 
 $exePath = Join-Path $InstallPath "Antigravity.exe"
+$vbsLauncher = "C:\Users\fc151\AppData\Roaming\Antigravity\launcher\launch-with-proxy.vbs"
+$localVbs = Join-Path $InstallPath "launch-with-proxy.vbs"
+$launcherToUse = if (Test-Path $vbsLauncher) { $vbsLauncher } elseif (Test-Path $localVbs) { $localVbs } else { $null }
+
 if (Test-Path $exePath) {
     if ($AutoLaunch) {
         Write-Host "正在启动 Antigravity..." -ForegroundColor Cyan
-        Start-Process -FilePath $exePath
+        if ($launcherToUse) {
+            Start-Process -FilePath "wscript.exe" -ArgumentList "`"$launcherToUse`""
+        } else {
+            Start-Process -FilePath $exePath
+        }
     } elseif (-not $NoPrompt) {
         $launch = Read-Host "是否现在启动 Antigravity 查看汉化效果？(Y/N)"
         if ($launch -match '^[yY]') {
             Write-Host "正在启动 Antigravity..." -ForegroundColor Cyan
-            Start-Process -FilePath $exePath
+            if ($launcherToUse) {
+                Start-Process -FilePath "wscript.exe" -ArgumentList "`"$launcherToUse`""
+            } else {
+                Start-Process -FilePath $exePath
+            }
         }
     }
 }
