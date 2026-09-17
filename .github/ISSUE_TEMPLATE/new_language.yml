@@ -1,0 +1,33 @@
+name: "🌍 申请新语言支持 / New Language Request"
+description: "提议在套件中新增一种新的语言支持（如韩语、法语、德语等）"
+title: "[新语言申请]: "
+labels: ["enhancement", "new-language"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        欢迎提议或贡献新的语种支持！
+  - type: input
+    id: lang_name
+    attributes:
+      label: 语言名称与代号 (Language Name & Code)
+      placeholder: "例如：Korean (ko-KR) / Français (fr-FR)"
+    validations:
+      required: true
+  - type: dropdown
+    id: willing_to_contribute
+    attributes:
+      label: 您是否愿意参与或提交该语言的翻译？ (Are you willing to contribute?)
+      options:
+        - "是，我可以直接提供完整的 dict.json 字典翻译"
+        - "是，我可以协助校对与测试"
+        - "否，仅作为需求提议"
+    validations:
+      required: true
+  - type: textarea
+    id: extra_notes
+    attributes:
+      label: 备注或参考信息 (Additional Context)
+      placeholder: "可以提供相关翻译资源、词汇表或特殊字符处理建议"
+    validations:
+      required: false

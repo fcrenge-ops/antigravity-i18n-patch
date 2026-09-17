@@ -4,6 +4,14 @@
   <a href="../README.md">简体中文</a> | <b>English</b> | <a href="README.zh-TW.md">繁體中文</a> | <a href="README.ja.md">日本語</a>
 </p>
 
+<p align="center">
+  <a href="https://github.com/fcrenge-ops/antigravity-i18n-patch/actions/workflows/ci.yml"><img src="https://github.com/fcrenge-ops/antigravity-i18n-patch/actions/workflows/ci.yml/badge.svg" alt="CI Status"></a>
+  <a href="https://github.com/fcrenge-ops/antigravity-i18n-patch/releases"><img src="https://img.shields.io/github/v/release/fcrenge-ops/antigravity-i18n-patch?color=3388ff&label=Release" alt="Release"></a>
+  <a href="../LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue" alt="Platform">
+  <a href="https://github.com/fcrenge-ops/antigravity-i18n-patch/pulls"><img src="https://img.shields.io/badge/PRs-Welcome-brightgreen" alt="PRs Welcome"></a>
+</p>
+
 A high-compatibility, non-destructive, and cross-platform (Windows / macOS / Linux) multi-language internationalization (i18n) patch suite designed specifically for the **Google Antigravity 2.0** desktop client. It supports **interactive language selection during installation** (or headless specification via CLI flags) and provides a **zero-friction plug-and-play extension mechanism** for custom language packs.
 
 ---

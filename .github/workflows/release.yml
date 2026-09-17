@@ -1,0 +1,40 @@
+name: Automatic Release Packaging
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and Attach Release Asset
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build All Language Patches
+        run: npm run build
+
+      - name: Create Portable Release Zip Archive
+        run: |
+          TAG_NAME="${{ github.ref_name }}"
+          ZIP_NAME="antigravity-i18n-patch-${TAG_NAME}.zip"
+          zip -r "${ZIP_NAME}" bin dist docs locales scripts LICENSE package.json README.md
+          echo "ZIP_NAME=${ZIP_NAME}" >> $GITHUB_ENV
+
+      - name: Publish or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ZIP_NAME }}
+          generate_release_notes: true

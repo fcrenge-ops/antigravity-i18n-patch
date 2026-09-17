@@ -4,6 +4,14 @@
   <a href="../README.md">简体中文</a> | <a href="README.en.md">English</a> | <a href="README.zh-TW.md">繁體中文</a> | <b>日本語</b>
 </p>
 
+<p align="center">
+  <a href="https://github.com/fcrenge-ops/antigravity-i18n-patch/actions/workflows/ci.yml"><img src="https://github.com/fcrenge-ops/antigravity-i18n-patch/actions/workflows/ci.yml/badge.svg" alt="CI Status"></a>
+  <a href="https://github.com/fcrenge-ops/antigravity-i18n-patch/releases"><img src="https://img.shields.io/github/v/release/fcrenge-ops/antigravity-i18n-patch?color=3388ff&label=Release" alt="Release"></a>
+  <a href="../LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue" alt="Platform">
+  <a href="https://github.com/fcrenge-ops/antigravity-i18n-patch/pulls"><img src="https://img.shields.io/badge/PRs-Welcome-brightgreen" alt="PRs Welcome"></a>
+</p>
+
 **Google Antigravity 2.0** デスクトップクライアント専用に設計された、高互換性・非破壊・完全クロスプラットフォーム（Windows / macOS / Linux）対応の多言語ローカライズ（i18n）パッチスイートです。**インストール時の対話型言語選択**やコマンドライン引数による言語指定に対応し、**簡単な言語パック拡張機能**も備えています。
 
 ---

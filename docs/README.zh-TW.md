@@ -4,6 +4,14 @@
   <a href="../README.md">简体中文</a> | <a href="README.en.md">English</a> | <b>繁體中文</b> | <a href="README.ja.md">日本語</a>
 </p>
 
+<p align="center">
+  <a href="https://github.com/fcrenge-ops/antigravity-i18n-patch/actions/workflows/ci.yml"><img src="https://github.com/fcrenge-ops/antigravity-i18n-patch/actions/workflows/ci.yml/badge.svg" alt="CI Status"></a>
+  <a href="https://github.com/fcrenge-ops/antigravity-i18n-patch/releases"><img src="https://img.shields.io/github/v/release/fcrenge-ops/antigravity-i18n-patch?color=3388ff&label=Release" alt="Release"></a>
+  <a href="../LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue" alt="Platform">
+  <a href="https://github.com/fcrenge-ops/antigravity-i18n-patch/pulls"><img src="https://img.shields.io/badge/PRs-Welcome-brightgreen" alt="PRs Welcome"></a>
+</p>
+
 專為 **Google Antigravity 2.0** 桌面用戶端量身打造的高相容、零破壞、全跨平台（Windows / macOS / Linux）多語言國際化（i18n）修補套件。支援**安裝時互動式選擇語言**或透過參數指定安裝，並提供**零門檻的對外語言包擴充機制**。
 
 ---

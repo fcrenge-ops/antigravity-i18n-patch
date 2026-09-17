@@ -1,0 +1,42 @@
+name: "🐛 故障与 Bug 报告 / Bug Report"
+description: "报告补丁安装失败、客户端无法启动、报错或异常行为"
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请尽可能详细地提供运行环境与错误日志，以便快速协助您解决问题。
+  - type: dropdown
+    id: os
+    attributes:
+      label: 操作系统 (Operating System)
+      options:
+        - "Windows 10 / 11"
+        - "macOS (Apple Silicon)"
+        - "macOS (Intel)"
+        - "Linux (Ubuntu / Debian / Fedora / Arch 等)"
+    validations:
+      required: true
+  - type: input
+    id: antigravity_version
+    attributes:
+      label: Antigravity 客户端版本 (Client Version)
+      placeholder: "例如：2.0.x 或最新版"
+    validations:
+      required: false
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述与复现步骤 (Description & Steps)
+      placeholder: "详细描述发生了什么，以及在执行什么命令时出错"
+    validations:
+      required: true
+  - type: textarea
+    id: terminal_logs
+    attributes:
+      label: 终端输出与错误日志 (Logs / Error Trace)
+      placeholder: "请粘贴终端中的完整报错信息"
+      render: shell
+    validations:
+      required: false

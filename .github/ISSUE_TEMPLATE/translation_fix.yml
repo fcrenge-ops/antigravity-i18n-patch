@@ -1,0 +1,42 @@
+name: "🌐 翻译错漏反馈 / Translation Feedback"
+description: "反馈界面中存在的翻译不准、错别字或格式排版问题"
+title: "[翻译反馈]: "
+labels: ["translation", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢您帮助完善 Antigravity 界面翻译！请填写以下信息以便快速定位和修正。
+  - type: dropdown
+    id: language
+    attributes:
+      label: 涉及语言 (Target Language)
+      options:
+        - "zh-CN (简体中文)"
+        - "zh-TW (繁體中文)"
+        - "ja-JP (日本語)"
+        - "en-US (English)"
+        - "其他 (Other)"
+    validations:
+      required: true
+  - type: input
+    id: original_text
+    attributes:
+      label: 原始英文或当前翻译文本 (Current Text)
+      placeholder: "例如：Agent Behavior 或 当前显示错误的文案"
+    validations:
+      required: true
+  - type: input
+    id: suggested_translation
+    attributes:
+      label: 建议修正后的翻译 (Suggested Translation)
+      placeholder: "例如：智能体行为 或 推荐的正确表述"
+    validations:
+      required: true
+  - type: textarea
+    id: location
+    attributes:
+      label: 出现位置或触发步骤 (Location / Steps)
+      placeholder: "例如：在设置面板 -> 常规设置中；或提供截图"
+    validations:
+      required: false
