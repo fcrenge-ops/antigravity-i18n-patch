@@ -8,7 +8,9 @@
 [CmdletBinding()]
 param (
     [string]$InstallPath = "",
-    [switch]$ForceClose
+    [switch]$ForceClose,
+    [switch]$NoPrompt,
+    [switch]$AutoLaunch
 )
 
 $ErrorActionPreference = "Stop"
@@ -170,9 +172,14 @@ Write-Host ""
 
 $exePath = Join-Path $InstallPath "Antigravity.exe"
 if (Test-Path $exePath) {
-    $launch = Read-Host "是否现在启动 Antigravity 查看汉化效果？(Y/N)"
-    if ($launch -match '^[yY]') {
+    if ($AutoLaunch) {
         Write-Host "正在启动 Antigravity..." -ForegroundColor Cyan
         Start-Process -FilePath $exePath
+    } elseif (-not $NoPrompt) {
+        $launch = Read-Host "是否现在启动 Antigravity 查看汉化效果？(Y/N)"
+        if ($launch -match '^[yY]') {
+            Write-Host "正在启动 Antigravity..." -ForegroundColor Cyan
+            Start-Process -FilePath $exePath
+        }
     }
 }

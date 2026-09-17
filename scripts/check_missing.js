@@ -27,11 +27,37 @@ for (const item of extracted) {
   if (typeof item !== 'string') continue;
   const trimmed = item.trim();
   if (!trimmed) continue;
-  // 过滤纯代码碎片或无实际翻译意义的符号
-  if (trimmed.startsWith('${') || trimmed.startsWith(')){') || trimmed.startsWith(',l)')) continue;
-  if (!dictKeys.has(trimmed)) {
-    missing.push(trimmed);
+  // 过滤纯代码碎片或无实际翻译意义的符号与数学公式
+  if (trimmed.startsWith('${') || trimmed.startsWith('){') || trimmed.startsWith(',l)')) continue;
+  if (/^\\\\[a-zA-Z]+$/.test(trimmed) || /^\\u[0-9a-fA-F]+$/.test(trimmed) || /^[><= ≥≤\u2265\u2212] ?\d+[smhd]$/.test(trimmed)) continue;
+  if (trimmed === '..' || trimmed === '\u2212') continue;
+  // 过滤内部模块标签 [AppState]、[ExtensibilityPlugins] 等
+  if (/^\[[A-Z][a-zA-Z]+\]$/.test(trimmed)) continue;
+  // 过滤代码片段（包含代码特征字符）
+  if (/[{};=]/.test(trimmed) && trimmed.length < 80) continue;
+  // 过滤纯 URL
+  if (/^https?:\/\//.test(trimmed)) continue;
+  // 过滤仓库路径 (如 chromium/chromium/src)
+  if (/^[a-z0-9_-]+\/[a-z0-9_/-]+$/.test(trimmed)) continue;
+  // 过滤纯技术命令列表 (如 run_command, view_file ...)
+  if (/^[a-z_]+([ ,]+[a-z_]+)*$/.test(trimmed)) continue;
+  // 过滤 Workspace 占位符
+  if (/^Workspace_\d+$/.test(trimmed)) continue;
+  // 过滤带 Unicode 转义的阈值标记 (如 \u2265 15s, \u2265 1m 等)
+  if (/^\\u[0-9a-fA-F]{4}\s+\d+[smhd]$/.test(trimmed)) continue;
+  // 过滤已知不需翻译的专有名词/内部产品名
+  const skipExact = new Set(['Chromium', 'Google3', 'Android (main)', 'Welcome to Cider with Jetski']);
+  if (skipExact.has(trimmed)) continue;
+  
+  // 尝试多种归一化形式匹配字典
+  const normalizedUnicode = trimmed.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+  const normalizedBackslash = trimmed.replace(/\\\\/g, '\\');
+  const normalizedBoth = normalizedUnicode.replace(/\\\\/g, '\\');
+  
+  if (dictKeys.has(trimmed) || dictKeys.has(normalizedUnicode) || dictKeys.has(normalizedBackslash) || dictKeys.has(normalizedBoth)) {
+    continue;
   }
+  missing.push(trimmed);
 }
 
 // 去重并排序
