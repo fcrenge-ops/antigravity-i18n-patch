@@ -280,6 +280,25 @@ function buildLocale(langId) {
   return outPath;
 }
 
+function ensureScriptLineEndings() {
+  const binDir = path.join(rootDir, 'bin');
+  if (fs.existsSync(binDir)) {
+    const files = fs.readdirSync(binDir);
+    for (const f of files) {
+      const full = path.join(binDir, f);
+      if (f.endsWith('.bat') || f.endsWith('.cmd')) {
+        let content = fs.readFileSync(full, 'utf8');
+        content = content.replace(/\r?\n/g, '\r\n');
+        fs.writeFileSync(full, content, 'utf8');
+      } else if (f.endsWith('.sh')) {
+        let content = fs.readFileSync(full, 'utf8');
+        content = content.replace(/\r?\n/g, '\n');
+        fs.writeFileSync(full, content, 'utf8');
+      }
+    }
+  }
+}
+
 function main() {
   console.log('====================================================');
   console.log('       Antigravity 多语言 i18n 补丁构建编译工具     ');
@@ -299,6 +318,9 @@ function main() {
       buildLocale(item.id);
     }
   }
+
+  // 规范化启动脚本换行符：.bat 为 CRLF，.sh 为 LF
+  ensureScriptLineEndings();
 
   console.log('====================================================');
   console.log('[完成] 补丁构建编译任务全部完成！');

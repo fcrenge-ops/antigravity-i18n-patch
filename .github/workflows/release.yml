@@ -26,6 +26,13 @@ jobs:
       - name: Build All Language Patches
         run: npm run build
 
+      - name: Ensure Executable Permissions and Proper Line Endings
+        run: |
+          chmod +x bin/*.sh scripts/*.js
+          sed -i 's/\r$//' bin/*.bat
+          sed -i 's/$/\r/' bin/*.bat
+          sed -i 's/\r$//' bin/*.sh
+
       - name: Create Portable Release Zip Archive
         run: |
           TAG_NAME="${{ github.ref_name }}"
