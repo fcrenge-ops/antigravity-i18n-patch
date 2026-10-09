@@ -47,7 +47,7 @@ module.exports = [
   { pattern: /^(\d+)\s+search(?:es)?$/i, replace: '$1 回の検索' },
   { pattern: /^(\d+)\s+folders?,\s*(\d+)\s+search(?:es)?$/i, replace: '$1 個のフォルダー、$2 回の検索' },
   { pattern: /^(\d+)\s+files?,\s*(\d+)\s+folders?$/i, replace: '$1 個のファイル、$2 個のフォルダー' },
-  { pattern: /^(\d+)\s+files?,\s*(\d+)\s+search(?:es)?$/i, replace: '$1 个ファイル、$2 回の検索' },
+  { pattern: /^(\d+)\s+files?,\s*(\d+)\s+search(?:es)?$/i, replace: '$1 個のファイル、$2 回の検索' },
   { pattern: /^(\d+)\s+files?,\s*(\d+)\s+folders?,\s*(\d+)\s+search(?:es)?$/i, replace: '$1 個のファイル、$2 個のフォルダー、$3 回の検索' },
   { pattern: /^(\d+)\s+seconds?$/i, replace: '$1 秒' },
   { pattern: /^(\d+)\s+minutes?$/i, replace: '$1 分' },

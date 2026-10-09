@@ -24,6 +24,8 @@
   "Zoom": "ズーム",
   "Close": "閉じる",
   "Close Window": "ウィンドウを閉じる",
+  "Connect to WSL": "WSL に接続",
+  "Reopen Locally": "ローカルで再度開く",
   "Quit Antigravity": "Antigravity を終了",
   "Quit": "終了"
 }

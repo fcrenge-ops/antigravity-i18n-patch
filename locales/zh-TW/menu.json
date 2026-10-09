@@ -24,6 +24,8 @@
   "Zoom": "縮放",
   "Close": "關閉",
   "Close Window": "關閉視窗",
+  "Connect to WSL": "連線至 WSL",
+  "Reopen Locally": "在本地重新開啟",
   "Quit Antigravity": "結束 Antigravity",
   "Quit": "結束"
 }

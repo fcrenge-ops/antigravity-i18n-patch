@@ -11,11 +11,13 @@ const { execSync, spawn } = require('child_process');
 const readline = require('readline');
 const pathResolver = require('./path_resolver');
 
-// 在脚本启动之初，如果进程在运行，优先捕捉一次当前进程路径，避免关闭后无法探测
+// 仅当本地尚未建立有效路径缓存时，尝试从正在运行的进程中抢先捕捉一次路径
 try {
-  const liveProcessPath = pathResolver.detectFromRunningProcess();
-  if (liveProcessPath) {
-    pathResolver.saveLocalPathCache(liveProcessPath);
+  if (!pathResolver.detectFromLocalCache()) {
+    const liveProcessPath = pathResolver.detectFromRunningProcess();
+    if (liveProcessPath) {
+      pathResolver.saveLocalPathCache(liveProcessPath);
+    }
   }
 } catch (e) {}
 
@@ -63,53 +65,61 @@ function askQuestion(query) {
   });
 }
 
-// 1. 检查并关闭进程
-function checkAndCloseProcess() {
-  if (skipProcessCheck) return Promise.resolve();
-
-  let isRunning = false;
+function isAntigravityRunning() {
   try {
     if (process.platform === 'win32') {
       const output = execSync('tasklist /FI "IMAGENAME eq Antigravity.exe" /NH', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
-      isRunning = output.toLowerCase().includes('antigravity.exe');
+      return output.toLowerCase().includes('antigravity.exe');
     } else {
       execSync('pgrep -i antigravity', { stdio: ['pipe', 'pipe', 'ignore'] });
-      isRunning = true;
+      return true;
     }
   } catch (e) {
-    isRunning = false;
+    return false;
   }
+}
 
-  if (!isRunning) return Promise.resolve();
+async function terminateProcess() {
+  log('正在退出 Antigravity 进程...', colors.yellow);
+  try {
+    if (process.platform === 'win32') {
+      execSync('taskkill /F /IM Antigravity.exe', { stdio: 'ignore' });
+    } else {
+      execSync('pkill -i antigravity || killall -9 Antigravity', { stdio: 'ignore' });
+    }
+  } catch (e) {}
+
+  // 异步非阻塞轮询等待进程释放句柄，消除 CPU 100% 忙等待峰值
+  const maxWait = 2000;
+  const pollInterval = 100;
+  let elapsed = 0;
+  while (elapsed < maxWait) {
+    if (!isAntigravityRunning()) break;
+    await new Promise((resolve) => setTimeout(resolve, pollInterval));
+    elapsed += pollInterval;
+  }
+}
+
+// 1. 检查并关闭进程
+async function checkAndCloseProcess() {
+  if (skipProcessCheck) return;
+
+  if (!isAntigravityRunning()) return;
 
   log('[提示] 检测到 Antigravity 客户端正在运行中。', colors.yellow);
 
-  const terminateProcess = () => {
-    log('正在退出 Antigravity 进程...', colors.yellow);
-    try {
-      if (process.platform === 'win32') {
-        execSync('taskkill /F /IM Antigravity.exe', { stdio: 'ignore' });
-      } else {
-        execSync('pkill -i antigravity || killall -9 Antigravity', { stdio: 'ignore' });
-      }
-    } catch (e) {}
-    const start = Date.now();
-    while (Date.now() - start < 2000) {}
-  };
-
   if (forceClose) {
-    terminateProcess();
-    return Promise.resolve();
+    await terminateProcess();
+    return;
   }
 
-  return askQuestion('还原官方英文版需要先关闭 Antigravity 客户端，是否立即关闭？(Y/N): ').then((answer) => {
-    if (/^[yY]/i.test(answer)) {
-      terminateProcess();
-    } else {
-      log('[取消] 用户取消操作，请手动退出 Antigravity 后重新运行。', colors.red);
-      process.exit(1);
-    }
-  });
+  const answer = await askQuestion('还原官方英文版需要先关闭 Antigravity 客户端，是否立即关闭？(Y/N): ');
+  if (/^[yY]/i.test(answer)) {
+    await terminateProcess();
+  } else {
+    log('[取消] 用户取消操作，请手动退出 Antigravity 后重新运行。', colors.red);
+    process.exit(1);
+  }
 }
 
 // 2. 跨平台全自动探测 Antigravity 安装与 resources 目录
@@ -145,8 +155,11 @@ async function main() {
   log(`[还原] 正在将官方备份文件恢复为 app.asar ...`, colors.cyan);
   fs.copyFileSync(backupAsar, appAsar);
 
-  if (fs.existsSync(backupUnpacked) && fs.existsSync(appAsarUnpacked)) {
+  if (fs.existsSync(backupUnpacked)) {
     log('[还原] 正在恢复官方配套 unpacked 资源目录...', colors.cyan);
+    if (fs.existsSync(appAsarUnpacked)) {
+      fs.rmSync(appAsarUnpacked, { recursive: true, force: true });
+    }
     fs.cpSync(backupUnpacked, appAsarUnpacked, { recursive: true });
   }
 

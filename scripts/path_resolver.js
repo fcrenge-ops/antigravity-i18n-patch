@@ -297,7 +297,7 @@ function getSystemCandidatePaths() {
  * @returns {Promise<{installDir: string, resourcesDir: string, appAsar: string}>}
  */
 async function resolveAntigravityPaths(customInput, askFn) {
-  // 1. 优先使用用户命令行传入的参数
+  // 1. 优先使用用户命令行传入的参数 (0ms)
   if (customInput) {
     const inspected = inspectAntigravityPath(customInput);
     if (inspected) {
@@ -308,17 +308,16 @@ async function resolveAntigravityPaths(customInput, askFn) {
     }
   }
 
-  // 2. 优先探测当前正在运行的进程
-  const runningProcessDir = detectFromRunningProcess();
-  if (runningProcessDir) {
-    const inspected = inspectAntigravityPath(runningProcessDir);
+  // 2. 检查本地机器历史成功缓存 (1ms，极速秒开)
+  const cachedDir = detectFromLocalCache();
+  if (cachedDir) {
+    const inspected = inspectAntigravityPath(cachedDir);
     if (inspected) {
-      saveLocalPathCache(inspected.installDir);
       return inspected;
     }
   }
 
-  // 3. 检查环境变量
+  // 3. 检查环境变量 (1ms)
   const envDir = detectFromEnv();
   if (envDir) {
     const inspected = inspectAntigravityPath(envDir);
@@ -328,19 +327,20 @@ async function resolveAntigravityPaths(customInput, askFn) {
     }
   }
 
-  // 4. 检查本地机器历史成功缓存
-  const cachedDir = detectFromLocalCache();
-  if (cachedDir) {
-    const inspected = inspectAntigravityPath(cachedDir);
+  // 4. 系统常见默认候选路径扫描 (5ms，纯本地 fs 快速探测，覆盖绝大部分默认安装场景)
+  const candidates = getSystemCandidatePaths();
+  for (const cand of candidates) {
+    const inspected = inspectAntigravityPath(cand);
     if (inspected) {
+      saveLocalPathCache(inspected.installDir);
       return inspected;
     }
   }
 
-  // 5. Windows 注册表扫描
-  const regDir = detectFromWindowsRegistry();
-  if (regDir) {
-    const inspected = inspectAntigravityPath(regDir);
+  // 5. 探测当前正在运行的进程 (耗时 1~2s，仅在静态常用路径未命中时触发)
+  const runningProcessDir = detectFromRunningProcess();
+  if (runningProcessDir) {
+    const inspected = inspectAntigravityPath(runningProcessDir);
     if (inspected) {
       saveLocalPathCache(inspected.installDir);
       return inspected;
@@ -357,10 +357,10 @@ async function resolveAntigravityPaths(customInput, askFn) {
     }
   }
 
-  // 7. 系统候选路径及各驱动器常见安装路径扫描
-  const candidates = getSystemCandidatePaths();
-  for (const cand of candidates) {
-    const inspected = inspectAntigravityPath(cand);
+  // 7. Windows 注册表扫描 (耗时 1~3s，作为最终备用手段)
+  const regDir = detectFromWindowsRegistry();
+  if (regDir) {
+    const inspected = inspectAntigravityPath(regDir);
     if (inspected) {
       saveLocalPathCache(inspected.installDir);
       return inspected;

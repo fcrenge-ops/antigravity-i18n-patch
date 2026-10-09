@@ -12,11 +12,13 @@ const readline = require('readline');
 const localeManager = require('./locale_manager');
 const pathResolver = require('./path_resolver');
 
-// 在脚本启动之初，如果进程在运行，优先捕捉一次当前进程路径，避免关闭后无法探测
+// 仅当本地尚未建立有效路径缓存时，尝试从正在运行的进程中抢先捕捉一次路径
 try {
-  const liveProcessPath = pathResolver.detectFromRunningProcess();
-  if (liveProcessPath) {
-    pathResolver.saveLocalPathCache(liveProcessPath);
+  if (!pathResolver.detectFromLocalCache()) {
+    const liveProcessPath = pathResolver.detectFromRunningProcess();
+    if (liveProcessPath) {
+      pathResolver.saveLocalPathCache(liveProcessPath);
+    }
   }
 } catch (e) {}
 
@@ -137,56 +139,63 @@ async function selectTargetLocale() {
   return locales[fallbackIndex];
 }
 
-// 2. 检测与关闭运行中的 Antigravity 进程
-function checkAndCloseProcess() {
-  if (skipProcessCheck) return Promise.resolve();
-
-  let isRunning = false;
+function isAntigravityRunning() {
   try {
     if (process.platform === 'win32') {
       const output = execSync('tasklist /FI "IMAGENAME eq Antigravity.exe" /NH', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
-      isRunning = output.toLowerCase().includes('antigravity.exe');
+      return output.toLowerCase().includes('antigravity.exe');
     } else {
       execSync('pgrep -i antigravity', { stdio: ['pipe', 'pipe', 'ignore'] });
-      isRunning = true;
+      return true;
     }
   } catch (e) {
-    isRunning = false;
+    return false;
+  }
+}
+
+async function terminateProcess() {
+  log('正在退出 Antigravity 进程...', colors.yellow);
+  try {
+    if (process.platform === 'win32') {
+      execSync('taskkill /F /IM Antigravity.exe', { stdio: 'ignore' });
+    } else {
+      execSync('pkill -i antigravity || killall -9 Antigravity', { stdio: 'ignore' });
+    }
+  } catch (e) {
+    // 忽略可能已经退出的报错
   }
 
-  if (!isRunning) return Promise.resolve();
+  // 异步非阻塞轮询等待进程释放句柄，消除 CPU 100% 忙等待峰值
+  const maxWait = 2000;
+  const pollInterval = 100;
+  let elapsed = 0;
+  while (elapsed < maxWait) {
+    if (!isAntigravityRunning()) break;
+    await new Promise((resolve) => setTimeout(resolve, pollInterval));
+    elapsed += pollInterval;
+  }
+}
+
+// 2. 检测与关闭运行中的 Antigravity 进程
+async function checkAndCloseProcess() {
+  if (skipProcessCheck) return;
+
+  if (!isAntigravityRunning()) return;
 
   log('[提示] 检测到 Antigravity 客户端正在运行中。', colors.yellow);
 
-  const terminateProcess = () => {
-    log('正在退出 Antigravity 进程...', colors.yellow);
-    try {
-      if (process.platform === 'win32') {
-        execSync('taskkill /F /IM Antigravity.exe', { stdio: 'ignore' });
-      } else {
-        execSync('pkill -i antigravity || killall -9 Antigravity', { stdio: 'ignore' });
-      }
-    } catch (e) {
-      // 忽略可能已经退出的报错
-    }
-    // 等待进程完全释放文件句柄
-    const start = Date.now();
-    while (Date.now() - start < 2000) {}
-  };
-
   if (forceClose) {
-    terminateProcess();
-    return Promise.resolve();
+    await terminateProcess();
+    return;
   }
 
-  return askQuestion('安装补丁需要先关闭 Antigravity 客户端，是否立即关闭？(Y/N): ').then((answer) => {
-    if (/^[yY]/i.test(answer)) {
-      terminateProcess();
-    } else {
-      log('[取消] 用户取消操作，请手动退出 Antigravity 后重新运行。', colors.red);
-      process.exit(1);
-    }
-  });
+  const answer = await askQuestion('安装补丁需要先关闭 Antigravity 客户端，是否立即关闭？(Y/N): ');
+  if (/^[yY]/i.test(answer)) {
+    await terminateProcess();
+  } else {
+    log('[取消] 用户取消操作，请手动退出 Antigravity 后重新运行。', colors.red);
+    process.exit(1);
+  }
 }
 
 // 3. 跨平台全自动探测 Antigravity 安装与 resources 目录 (支持不同电脑、自定义盘符与任意安装位置)
@@ -195,6 +204,67 @@ async function resolveAntigravityPaths() {
   log(`[信息] Antigravity 安装目录: ${result.installDir}`, colors.green);
   log(`[信息] Antigravity 资源目录: ${result.resourcesDir}`, colors.green);
   return result;
+}
+
+/**
+ * 极速解析 asar 文件头获取 package.json 版本号与是否包含 i18n 补丁
+ * 纯 Node.js 实现，无需启动子进程，仅耗时 1~2ms
+ */
+function getAsarMeta(asarPath) {
+  if (!fs.existsSync(asarPath)) return null;
+  try {
+    const fd = fs.openSync(asarPath, 'r');
+    const hBuf = Buffer.alloc(16);
+    fs.readSync(fd, hBuf, 0, 16, 0);
+    const headerPayloadSize = hBuf.readUInt32LE(4);
+    const jsonLen = hBuf.readUInt32LE(12);
+    const headerJsonBuf = Buffer.alloc(jsonLen);
+    fs.readSync(fd, headerJsonBuf, 0, jsonLen, 16);
+    const header = JSON.parse(headerJsonBuf.toString('utf8'));
+    fs.closeSync(fd);
+
+    const isPatched = Boolean(header.files && header.files['.antigravity_i18n.json']);
+    let version = null;
+
+    if (header.files && header.files['package.json'] && header.files['package.json'].offset) {
+      const entry = header.files['package.json'];
+      const dataBase = 8 + headerPayloadSize;
+      const buf = Buffer.alloc(entry.size);
+      const fdPkg = fs.openSync(asarPath, 'r');
+      fs.readSync(fdPkg, buf, 0, entry.size, dataBase + parseInt(entry.offset, 10));
+      fs.closeSync(fdPkg);
+      const pkg = JSON.parse(buf.toString('utf8'));
+      version = pkg.version || null;
+    }
+
+    return {
+      version,
+      isPatched,
+      mtime: fs.statSync(asarPath).mtimeMs,
+      size: fs.statSync(asarPath).size,
+    };
+  } catch (e) {
+    return {
+      version: null,
+      isPatched: false,
+      mtime: fs.statSync(asarPath).mtimeMs,
+      size: fs.statSync(asarPath).size,
+    };
+  }
+}
+
+function compareVersions(v1, v2) {
+  if (!v1 || !v2) return 0;
+  const p1 = v1.split('.').map((n) => parseInt(n, 10) || 0);
+  const p2 = v2.split('.').map((n) => parseInt(n, 10) || 0);
+  const len = Math.max(p1.length, p2.length);
+  for (let i = 0; i < len; i++) {
+    const a = p1[i] || 0;
+    const b = p2[i] || 0;
+    if (a > b) return 1;
+    if (a < b) return -1;
+  }
+  return 0;
 }
 
 // 主流程
@@ -258,24 +328,45 @@ async function main() {
     process.exit(1);
   }
 
-  // 4. 备份官方纯净包与配套 unpacked 目录
-  if (!fs.existsSync(backupAsar)) {
-    log(`[备份] 正在创建官方原始包备份: ${path.basename(backupAsar)} ...`, colors.cyan);
+  // 4. 备份与官方更新防版本降级校验
+  const appMeta = fs.existsSync(appAsar) ? getAsarMeta(appAsar) : null;
+  const backupMeta = fs.existsSync(backupAsar) ? getAsarMeta(backupAsar) : null;
+  let needRefreshBackup = false;
+
+  if (backupMeta && appMeta) {
+    // 校验 A: 官方自动升级使得 app.asar 的语义化版本高于现有备份
+    if (appMeta.version && backupMeta.version && compareVersions(appMeta.version, backupMeta.version) > 0) {
+      log(`[防版本降级] 检测到官方客户端已升级: v${backupMeta.version} -> v${appMeta.version}！`, colors.yellow);
+      needRefreshBackup = true;
+    }
+    // 校验 B: 当前 app.asar 是纯净官方包且修改时间明显晚于旧备份，说明被官方热修复或覆盖更新
+    else if (!appMeta.isPatched && appMeta.mtime > backupMeta.mtime) {
+      log(`[防版本降级] 检测到官方全新覆盖的纯净包 app.asar，准备更新基准源备份...`, colors.yellow);
+      needRefreshBackup = true;
+    }
+  }
+
+  if (needRefreshBackup || !fs.existsSync(backupAsar)) {
+    const verTag = appMeta?.version ? ` (v${appMeta.version})` : '';
+    log(`[备份] 正在创建官方原始纯净包备份: ${path.basename(backupAsar)}${verTag} ...`, colors.cyan);
     fs.copyFileSync(appAsar, backupAsar);
     if (fs.existsSync(appAsarUnpacked)) {
       log(`[备份] 正在备份配套 unpacked 资源目录: ${path.basename(backupUnpacked)} ...`, colors.cyan);
+      if (fs.existsSync(backupUnpacked)) {
+        fs.rmSync(backupUnpacked, { recursive: true, force: true });
+      }
       fs.cpSync(appAsarUnpacked, backupUnpacked, { recursive: true });
     }
-    log('[备份] 原始包备份成功！随时可运行一键还原恢复官方英文版。', colors.green);
+    log('[备份] 官方纯净包备份就绪！杜绝新版被旧备份降级回退。', colors.green);
   } else {
-    log('[备份] 检测到已有官方原版备份文件，保留该纯净备份。', colors.gray);
+    log(`[备份] 检测到已有官方原版备份${backupMeta?.version ? ` (v${backupMeta.version})` : ''}，保留该纯净备份。`, colors.gray);
     if (fs.existsSync(appAsarUnpacked) && !fs.existsSync(backupUnpacked)) {
       log('[备份] 检测到缺失配套 unpacked 纯净备份，正在自动补全...', colors.cyan);
       fs.cpSync(appAsarUnpacked, backupUnpacked, { recursive: true });
     }
   }
 
-  // 优先基于官方纯净备份解包注入
+  // 始终以经过防降级验证的官方纯净包 backupAsar 作为基准源
   const sourceAsar = fs.existsSync(backupAsar) ? backupAsar : appAsar;
   const sourceUnpacked = `${sourceAsar}.unpacked`;
 
@@ -437,7 +528,16 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  log(`[未捕获异常]: ${err.message}`, colors.red);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    log(`[未捕获异常]: ${err.message}`, colors.red);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  getAsarMeta,
+  compareVersions,
+  checkAndCloseProcess,
+  main,
+};

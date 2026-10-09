@@ -7,6 +7,13 @@
 (function () {
   'use strict';
 
+  // 0. 消除 preload 与 did-finish-load 的重复监听 (跨 Electron 上下文互斥)
+  const LOADED_ATTR = 'data-antigravity-i18n-loaded';
+  if (typeof document !== 'undefined' && document.documentElement) {
+    if (document.documentElement.hasAttribute(LOADED_ATTR)) return;
+    document.documentElement.setAttribute(LOADED_ATTR, 'true');
+  }
+
   if (typeof window !== 'undefined') {
     if (window.__antigravity_i18n_patch_loaded__) return;
     window.__antigravity_i18n_patch_loaded__ = true;
@@ -2243,42 +2250,108 @@
     { pattern: /^Resets in (\d+)h (\d+)m$/i, replace: "將在 $1 小時 $2 分鐘後重設" },
     { pattern: /^Resets in (\d+)h$/i, replace: "將在 $1 小時後重設" },
     { pattern: /^Resets in (\d+)m$/i, replace: "將在 $1 分鐘後重設" },
+    { pattern: /^Resets in (?:(\d+)d)?\s*(?:(\d+)h)?\s*(?:(\d+)m)?\s*(?:(\d+)s)?\.?$/i, replace: function(match, d, h, m, s) {
+      var parts = [];
+      if (d) parts.push(d + ' 天');
+      if (h) parts.push(h + ' 小時');
+      if (m) parts.push(m + ' 分鐘');
+      if (s) parts.push(s + ' 秒');
+      return parts.length ? ('將在 ' + parts.join(' ') + '後重設') : match;
+    } },
     { pattern: /^Step (\d+) of (\d+)$/i, replace: "步驟 $1 / $2" },
     { pattern: /^Showing (\d+) of (\d+) results$/i, replace: "顯示第 $1 / $2 項結果" },
     { pattern: /^(\d+)\s+files?$/i, replace: "$1 個檔案" },
     { pattern: /^(\d+)\s+folders?$/i, replace: "$1 個資料夾" },
+    { pattern: /^(\d+)\s+search(?:es)?$/i, replace: "$1 次搜尋" },
+    { pattern: /^(\d+)\s+folders?,\s*(\d+)\s+search(?:es)?$/i, replace: "$1 個資料夾，$2 次搜尋" },
+    { pattern: /^(\d+)\s+files?,\s*(\d+)\s+folders?$/i, replace: "$1 個檔案，$2 個資料夾" },
+    { pattern: /^(\d+)\s+files?,\s*(\d+)\s+search(?:es)?$/i, replace: "$1 個檔案，$2 次搜尋" },
+    { pattern: /^(\d+)\s+files?,\s*(\d+)\s+folders?,\s*(\d+)\s+search(?:es)?$/i, replace: "$1 個檔案，$2 個資料夾，$3 次搜尋" },
     { pattern: /^(\d+)\s+seconds?$/i, replace: "$1 秒" },
     { pattern: /^(\d+)\s+minutes?$/i, replace: "$1 分鐘" },
     { pattern: /^(\d+)\s+hours?$/i, replace: "$1 小時" },
     { pattern: /^(\d+)\s+days?$/i, replace: "$1 天" },
     { pattern: /^Wait for task:\s*(.*)$/i, replace: "等待任務: $1" },
     { pattern: /^Timed:\s*(\d+)\s*seconds?$/i, replace: "已耗時: $1 秒" },
-    { pattern: /^Unknown:\s*Agent execution terminated due to error\.?$/i, replace: "未知錯誤: 智能體執行因錯誤終止。" },
-    { pattern: /^Agent execution terminated due to error\.?$/i, replace: "智能體執行因錯誤終止。" },
-    { pattern: /^Error ID:\s*(.*)$/i, replace: "錯誤 ID: $1" }
+    { pattern: /^Unknown:\s*Agent execution terminated due to error\.?$/i, replace: "未知錯誤: 智慧代理執行因錯誤終止。" },
+    { pattern: /^Agent execution terminated due to error\.?$/i, replace: "智慧代理執行因錯誤終止。" },
+    { pattern: /^Error ID:\s*(.*)$/i, replace: "錯誤 ID: $1" },
+    { pattern: /^Individual quota reached\. Please upgrade your subscription to increase your limits\. Resets in (.*?)\.?$/i, replace: function(match, timeStr) {
+      var formatted = timeStr
+        .replace(/(\d+)d/g, '$1 天 ')
+        .replace(/(\d+)h/g, '$1 小時 ')
+        .replace(/(\d+)m/g, '$1 分鐘 ')
+        .replace(/(\d+)s/g, '$1 秒')
+        .trim();
+      return '已達個人額度上限。請升級訂閱以提升額度。將在 ' + formatted + '後重設。';
+    } },
+    { pattern: /^You have used (some|all) of your ([\w\- ]+?) limit, it will fully refresh in (.*?)\.?$/i, replace: function(match, usageType, limitType, timeStr) {
+      var usage = usageType.toLowerCase() === 'all' ? '已用盡' : '已使用部分';
+      var limit = limitType.trim();
+      if (/weekly/i.test(limit)) limit = '週';
+      else if (/5-hour|5 hour/i.test(limit)) limit = '5 小時';
+      else if (/daily/i.test(limit)) limit = '日';
+      else if (/hourly/i.test(limit)) limit = '小時';
+      
+      var formattedTime = timeStr
+        .replace(/(\d+)\s*days?/gi, '$1 天')
+        .replace(/(\d+)\s*hours?/gi, '$1 小時')
+        .replace(/(\d+)\s*minutes?/gi, '$1 分鐘')
+        .replace(/(\d+)\s*seconds?/gi, '$1 秒')
+        .replace(/,\s*/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      var limitWithSpace = /^\d/.test(limit) ? (' ' + limit) : limit;
+      return '您' + usage + limitWithSpace + '額度，將在 ' + formattedTime + ' 後完全重新整理。';
+    } },
+    { pattern: /Learn more about (.*)/i, replace: "了解更多關於 $1 的資訊" },
+    { pattern: /Controls the actions the agent can take\.?/i, replace: "控制智慧代理可以執行的操作。" },
+    { pattern: /Whether the agent asks you to review its documents\.?/i, replace: "智慧代理生成文件成品時是否需要您進行審查。" }
   ];
 
-  // 3. 需排除的标签与类名（保护代码、终端与用户输入文本）
+  // 3. 需排除的标签与选择器（保护代码、终端与用户输入文本）
   const EXCLUDED_TAGS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'CODE', 'PRE', 'TEXTAREA']);
-  const EXCLUDED_CLASSES = [
-    'monaco-editor',
-    'monaco-diff-editor',
-    'terminal',
-    'xterm',
-    'hljs',
-    'prism-code',
-    'code-block',
-  ];
+  const EXCLUDED_SELECTOR = [
+    'code',
+    'pre',
+    'script',
+    'style',
+    'noscript',
+    'textarea',
+    '.monaco-editor',
+    '.monaco-diff-editor',
+    '.terminal',
+    '.xterm',
+    '.hljs',
+    '.prism-code',
+    '.code-block',
+    '[contenteditable="true"]',
+    '[data-lexical-editor]',
+    '[data-slate-editor]',
+  ].join(', ');
 
   function shouldSkipElement(element) {
     if (!element || element.nodeType !== Node.ELEMENT_NODE) return false;
     if (EXCLUDED_TAGS.has(element.tagName)) return true;
     if (element.isContentEditable) return true;
-    
+
+    // Monaco/终端祖先链 closest 校验，彻底杜绝内层 DOM 节点汉化误伤代码
+    if (typeof element.closest === 'function') {
+      try {
+        if (element.closest(EXCLUDED_SELECTOR)) return true;
+      } catch (e) {}
+    }
+
     const className = element.className;
     if (typeof className === 'string') {
-      for (let i = 0; i < EXCLUDED_CLASSES.length; i++) {
-        if (className.includes(EXCLUDED_CLASSES[i])) return true;
+      if (
+        className.includes('monaco-editor') ||
+        className.includes('terminal') ||
+        className.includes('xterm') ||
+        className.includes('hljs') ||
+        className.includes('code-block')
+      ) {
+        return true;
       }
     }
 
@@ -2289,23 +2362,41 @@
     return false;
   }
 
+  const untranslatableTextSet = new Set();
+
+  function replaceCoreText(fullText, oldCore, newCore) {
+    if (fullText === oldCore) return newCore;
+    const idx = fullText.indexOf(oldCore);
+    if (idx === -1) return fullText;
+    return fullText.slice(0, idx) + newCore + fullText.slice(idx + oldCore.length);
+  }
+
   function translateText(text) {
     if (!text || typeof text !== 'string') return text;
     const trimmed = text.trim();
     if (!trimmed || trimmed.length > 500) return text;
 
-    // 1. 精确匹配
+    // 快速未命中缓存过滤
+    if (untranslatableTextSet.has(trimmed)) return text;
+
+    // 1. 精确匹配 (安全切片替换，杜绝 $ 字符特殊变量替换隐患)
     if (EXACT_DICT.hasOwnProperty(trimmed)) {
       const translated = EXACT_DICT[trimmed];
-      return text.replace(trimmed, translated);
+      return replaceCoreText(text, trimmed, translated);
     }
 
     // 2. 正则规则匹配
     for (let i = 0; i < REGEX_RULES.length; i++) {
       const rule = REGEX_RULES[i];
       if (rule.pattern.test(trimmed)) {
-        return text.replace(trimmed, trimmed.replace(rule.pattern, rule.replace));
+        const replacedTrimmed = trimmed.replace(rule.pattern, rule.replace);
+        return replaceCoreText(text, trimmed, replacedTrimmed);
       }
+    }
+
+    // 未命中文本缓存（上限 10000 条防内存膨胀）
+    if (untranslatableTextSet.size < 10000) {
+      untranslatableTextSet.add(trimmed);
     }
 
     return text;
@@ -2337,7 +2428,7 @@
     }
   }
 
-  const translatedNodesMap = new WeakMap();
+  const processedNodesMap = new WeakMap();
 
   function processNode(node) {
     if (!node) return;
@@ -2346,16 +2437,24 @@
       const origin = node.nodeValue;
       if (!origin || !origin.trim()) return;
 
-      const lastTranslated = translatedNodesMap.get(node);
-      if (lastTranslated === origin) return;
+      // WeakMap 节点级缓存：如果文本内容未发生变化，直接跳过
+      const lastText = processedNodesMap.get(node);
+      if (lastText === origin) return;
 
       const parent = node.parentElement;
-      if (parent && shouldSkipElement(parent)) return;
+      if (parent && shouldSkipElement(parent)) {
+        // 标记已处理，防止同一排除节点在每一帧无休止重走判断
+        processedNodesMap.set(node, origin);
+        return;
+      }
 
       const translated = translateText(origin);
       if (translated !== origin) {
-        translatedNodesMap.set(node, translated);
+        processedNodesMap.set(node, translated);
         node.nodeValue = translated;
+      } else {
+        // 关键修复：未命中词条同样缓存，消除不可翻译文本每一帧遍历时的无效字典与正则查找
+        processedNodesMap.set(node, origin);
       }
       return;
     }
@@ -2373,23 +2472,24 @@
     }
   }
 
-  let pendingNodes = [];
+  const pendingNodes = new Set();
   let isScheduled = false;
 
   function flushPendingNodes() {
     isScheduled = false;
-    const nodes = pendingNodes;
-    pendingNodes = [];
+    const nodes = Array.from(pendingNodes);
+    pendingNodes.clear();
     for (let i = 0; i < nodes.length; i++) {
       processNode(nodes[i]);
     }
   }
 
   function scheduleNode(node) {
-    pendingNodes.push(node);
+    if (!node) return;
+    pendingNodes.add(node);
     if (!isScheduled) {
       isScheduled = true;
-      if (window.requestAnimationFrame) {
+      if (typeof window !== 'undefined' && window.requestAnimationFrame) {
         window.requestAnimationFrame(flushPendingNodes);
       } else {
         setTimeout(flushPendingNodes, 16);
@@ -2407,6 +2507,10 @@
           }
         } else if (mutation.type === 'characterData') {
           scheduleNode(mutation.target);
+        } else if (mutation.type === 'attributes') {
+          if (mutation.target && mutation.target.nodeType === Node.ELEMENT_NODE) {
+            translateAttributes(mutation.target);
+          }
         }
       }
     });
@@ -2415,6 +2519,8 @@
       childList: true,
       subtree: true,
       characterData: true,
+      attributes: true,
+      attributeFilter: ['placeholder', 'title', 'aria-label', 'data-tooltip', 'data-tooltip-content', 'data-tip'],
     });
 
     processNode(document.body || document.documentElement);
@@ -2426,7 +2532,7 @@
       const style = document.createElement('style');
       style.id = 'antigravity-i18n-font';
       style.textContent = `
-        body, button, input, select, textarea {
+        body, button:not([class*="codicon"]):not([class*="icon"]), input, select, textarea {
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif !important;
         }
         code, pre, .terminal, .monaco-editor {
@@ -2440,6 +2546,9 @@
   }
 
   function initialize() {
+    if (typeof document !== 'undefined' && document.documentElement) {
+      document.documentElement.setAttribute(LOADED_ATTR, 'true');
+    }
     injectCustomFont();
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {

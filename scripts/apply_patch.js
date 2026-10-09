@@ -36,6 +36,19 @@ if (!fs.existsSync(patchSource)) {
 
 const patchCode = fs.readFileSync(patchSource, 'utf8');
 
+// 定义标准 Sentinel 哨兵标记（确保注入边界绝对清晰，杜绝语法截断与重复注入残留）
+const PRELOAD_SENTINEL_START = '/* <<< ANTIGRAVITY_I18N_PRELOAD_START >>> */';
+const PRELOAD_SENTINEL_END = '/* <<< ANTIGRAVITY_I18N_PRELOAD_END >>> */';
+
+const UTILS_SENTINEL_START = '/* <<< ANTIGRAVITY_I18N_UTILS_START >>> */';
+const UTILS_SENTINEL_END = '/* <<< ANTIGRAVITY_I18N_UTILS_END >>> */';
+
+const MENU_SENTINEL_START = '/* <<< ANTIGRAVITY_I18N_MENU_START >>> */';
+const MENU_SENTINEL_END = '/* <<< ANTIGRAVITY_I18N_MENU_END >>> */';
+
+const TRAY_SENTINEL_START = '/* <<< ANTIGRAVITY_I18N_TRAY_START >>> */';
+const TRAY_SENTINEL_END = '/* <<< ANTIGRAVITY_I18N_TRAY_END >>> */';
+
 // 1. 将语言补丁代码内联注入到 dist/preload.js
 const preloadPath = path.join(targetDir, 'dist', 'preload.js');
 if (!fs.existsSync(preloadPath)) {
@@ -45,12 +58,18 @@ if (!fs.existsSync(preloadPath)) {
 
 let preloadContent = fs.readFileSync(preloadPath, 'utf8');
 
-// 清除历史版本注入标记（支持重复安装与任意语言互相切换）
+// 优先通过 Sentinel 标记精确清除已注入代码
+preloadContent = preloadContent.replace(
+  /\/\* <<< ANTIGRAVITY_I18N_PRELOAD_START >>> \*\/[\s\S]*?\/\* <<< ANTIGRAVITY_I18N_PRELOAD_END >>> \*\//g,
+  ''
+);
+// 兼容清除历史版本旧标记（支持重复安装与任意语言互相切换）
 preloadContent = preloadContent.replace(/\/\/ =*[\s\S]*?require\('\.\/chinese_patch\.js'\);[\s\S]*?}/g, '');
 preloadContent = preloadContent.replace(/\/\/ --- Antigravity (?:简体中文汉化|多语言 i18n)补丁 ---[\s\S]*?}/g, '');
 preloadContent = preloadContent.replace(/\/\/ =*[\r\n]+\/\/\s*Antigravity\s*(?:简体中文汉化|多语言 i18n|UI)[\s\S]*?\/\/ =*[\r\n]+try\s*\{[\s\S]*?\}\s*catch\s*\(err\)\s*\{[\s\S]*?\}/g, '');
 
 const inlineInjection = `
+${PRELOAD_SENTINEL_START}
 // ====================================================
 // Antigravity 多语言 i18n 补丁 [${localeData.meta.id} - ${localeData.meta.nativeName}] (内联完整注入)
 // ====================================================
@@ -59,6 +78,7 @@ ${patchCode}
 } catch (err) {
   console.error('[Antigravity-i18n] 补丁内联执行异常:', err);
 }
+${PRELOAD_SENTINEL_END}
 `;
 
 console.log(`正在向 dist/preload.js 注入 [${localeData.meta.id} - ${localeData.meta.nativeName}] 界面语言引擎...`);
@@ -69,7 +89,12 @@ fs.writeFileSync(preloadPath, preloadContent, 'utf8');
 const utilsPath = path.join(targetDir, 'dist', 'utils.js');
 if (fs.existsSync(utilsPath)) {
   let utilsContent = fs.readFileSync(utilsPath, 'utf8');
-  // 如果已存在注入标记，先清理旧注入保障代码
+  // 优先通过 Sentinel 标记精确清理旧注入保障代码
+  utilsContent = utilsContent.replace(
+    /\/\* <<< ANTIGRAVITY_I18N_UTILS_START >>> \*\/[\s\S]*?\/\* <<< ANTIGRAVITY_I18N_UTILS_END >>> \*\//g,
+    ''
+  );
+  // 兼容旧版清理
   if (utilsContent.includes('/* antigravity_chinese_patch_injected */') || utilsContent.includes('/* antigravity_i18n_patch_injected */')) {
     utilsContent = utilsContent.replace(
       /win\.webContents\.on\('did-finish-load',\s*\(\)\s*=>\s*\{\s*\/\*\s*antigravity_[a-z0-9_]+_injected\s*\*\/[\s\S]*?void win\.webContents\.executeJavaScript\([\s\S]*?\)\.catch\(\(\)\s*=>\s*\{\}\);/g,
@@ -79,9 +104,12 @@ if (fs.existsSync(utilsPath)) {
 
   console.log(`正在向 dist/utils.js 注入 [${localeData.meta.id}] 二次保障逻辑...`);
   if (utilsContent.includes("win.webContents.on('did-finish-load', () => {")) {
+    const utilsReplacement = `win.webContents.on('did-finish-load', () => { ${UTILS_SENTINEL_START}
+            void win.webContents.executeJavaScript(${JSON.stringify(patchCode)}).catch(() => {});
+            ${UTILS_SENTINEL_END}`;
     utilsContent = utilsContent.replace(
       "win.webContents.on('did-finish-load', () => {",
-      "win.webContents.on('did-finish-load', () => { /* antigravity_i18n_patch_injected */\n            void win.webContents.executeJavaScript(" + JSON.stringify(patchCode) + ").catch(() => {});"
+      utilsReplacement
     );
     fs.writeFileSync(utilsPath, utilsContent, 'utf8');
   }
@@ -93,12 +121,22 @@ if (fs.existsSync(menuPath)) {
   let menuContent = fs.readFileSync(menuPath, 'utf8');
   const menuMap = localeData.menu || {};
 
-  // 清除旧的菜单翻译代码（支持多语言互相切换覆盖）
+  // 优先通过 Sentinel 标记精确清除旧菜单翻译代码
+  menuContent = menuContent.replace(
+    /\/\* <<< ANTIGRAVITY_I18N_MENU_START >>> \*\/[\s\S]*?\/\* <<< ANTIGRAVITY_I18N_MENU_END >>> \*\//g,
+    ''
+  );
+  // 兼容旧版清除
   menuContent = menuContent.replace(/\s*const MENU_TRANSLATIONS = [\s\S]*?translateSubmenu\(menu\);/g, '');
+  menuContent = menuContent.replace(
+    'const submenuItem = appMenu.items.find((item) => item.label === submenuLabel || (typeof MENU_TRANSLATIONS !== "undefined" && item.label === MENU_TRANSLATIONS[submenuLabel]));',
+    'const submenuItem = appMenu.items.find((item) => item.label === submenuLabel);'
+  );
 
   if (Object.keys(menuMap).length > 0) {
     console.log(`正在本地化 dist/menu.js 原生菜单 [${localeData.meta.id}] (${Object.keys(menuMap).length} 条)...`);
     const menuTranslateCode = `
+    ${MENU_SENTINEL_START}
     const MENU_TRANSLATIONS = ${JSON.stringify(menuMap, null, 8)};
     function translateSubmenu(menuObj) {
         if (!menuObj || !menuObj.items) return;
@@ -111,15 +149,29 @@ if (fs.existsSync(menuPath)) {
             }
         });
     }
-    translateSubmenu(menu);`;
+    const _origSetAppMenu = electron_1.Menu.setApplicationMenu;
+    electron_1.Menu.setApplicationMenu = function(m) {
+        if (m) translateSubmenu(m);
+        return _origSetAppMenu.call(electron_1.Menu, m);
+    };
+    translateSubmenu(menu);
+    ${MENU_SENTINEL_END}`;
 
     if (menuContent.includes('electron_1.Menu.setApplicationMenu(menu);')) {
       menuContent = menuContent.replace(
         'electron_1.Menu.setApplicationMenu(menu);',
         menuTranslateCode + '\n    electron_1.Menu.setApplicationMenu(menu);'
       );
-      fs.writeFileSync(menuPath, menuContent, 'utf8');
     }
+
+    // 兼容 Windows WSL 异步添加菜单定位：即使 'File' 已被汉化，亦能通过映射别名匹配父菜单
+    if (menuContent.includes('const submenuItem = appMenu.items.find((item) => item.label === submenuLabel);')) {
+      menuContent = menuContent.replace(
+        'const submenuItem = appMenu.items.find((item) => item.label === submenuLabel);',
+        'const submenuItem = appMenu.items.find((item) => item.label === submenuLabel || (typeof MENU_TRANSLATIONS !== "undefined" && item.label === MENU_TRANSLATIONS[submenuLabel]));'
+      );
+    }
+    fs.writeFileSync(menuPath, menuContent, 'utf8');
   }
 }
 
@@ -130,26 +182,30 @@ if (fs.existsSync(trayPath)) {
   const trayConfig = localeData.meta.tray || {};
   const runningTpl = trayConfig.runningTemplate;
   const noAgentsText = trayConfig.noAgents;
+  const defaultTrayCode = "countItem.label = (count > 0 ? `${count}` : 'No') + ' agent' + (count === 1 ? '' : 's') + ' running';";
 
   if (runningTpl && noAgentsText) {
     console.log(`正在本地化 dist/tray.js 托盘菜单 [${localeData.meta.id}]...`);
-    // 还原已有的托盘匹配
+    // 优先通过 Sentinel 标记还原
     trayContent = trayContent.replace(
-      /countItem\.label\s*=\s*\(count > 0 \? [^;]+ : [^;]+\);/g,
-      "countItem.label = (count > 0 ? `${count}` : 'No') + ' agent' + (count === 1 ? '' : 's') + ' running';"
+      /\/\* <<< ANTIGRAVITY_I18N_TRAY_START >>> \*\/[\s\S]*?\/\* <<< ANTIGRAVITY_I18N_TRAY_END >>> \*\//g,
+      defaultTrayCode
     );
 
-    let replacement;
+    let replacementCore;
     if (runningTpl.includes('{plural}')) {
-      replacement = `countItem.label = (count > 0 ? \`${runningTpl.replace('{count}', '${count}').replace('{plural}', "${count === 1 ? '' : 's'}")}\` : ${JSON.stringify(noAgentsText)});`;
+      replacementCore = `countItem.label = (count > 0 ? \`${runningTpl.replace('{count}', '${count}').replace('{plural}', "${count === 1 ? '' : 's'}")}\` : ${JSON.stringify(noAgentsText)});`;
     } else {
-      replacement = `countItem.label = (count > 0 ? \`${runningTpl.replace('{count}', '${count}')}\` : ${JSON.stringify(noAgentsText)});`;
+      replacementCore = `countItem.label = (count > 0 ? \`${runningTpl.replace('{count}', '${count}')}\` : ${JSON.stringify(noAgentsText)});`;
     }
 
-    trayContent = trayContent.replace(
-      /countItem\.label\s*=\s*\(count > 0 \? `\$\{count\}` : 'No'\)\s*\+\s*' agent'\s*\+\s*\(count === 1 \? '' : 's'\)\s*\+\s*' running';/g,
-      replacement
-    );
+    const trayReplacement = `${TRAY_SENTINEL_START} ${replacementCore} ${TRAY_SENTINEL_END}`;
+    // 兼容多行与单行 countItem.label 替换
+    if (/countItem\.label\s*=\s*[\s\S]*?' running';/.test(trayContent)) {
+      trayContent = trayContent.replace(/countItem\.label\s*=\s*[\s\S]*?' running';/, trayReplacement);
+    } else {
+      trayContent = trayContent.replace(defaultTrayCode, trayReplacement);
+    }
     fs.writeFileSync(trayPath, trayContent, 'utf8');
   }
 }
