@@ -59,8 +59,14 @@ for (const item of extracted) {
   if (/^Workspace_\d+$/.test(trimmed)) continue;
   // 过滤带 Unicode 转义的阈值标记 (如 \u2265 15s, \u2265 1m 等)
   if (/^\\u[0-9a-fA-F]{4}\s+\d+[smhd]$/.test(trimmed)) continue;
+  // 过滤内部函数断言、AST、Lexical 及解析器报错
+  if (trimmed.startsWith('$') || trimmed.startsWith('&&') || trimmed.startsWith('? ')) continue;
+  if (/^LexicalNode:|^[A-Z0-9_]+Got|^Method |^Reconciliation:/.test(trimmed)) continue;
+  if (/^A (class|generic|containment|case reducer|back reference|primitive|non-root|POSIX|stream that|subtler version)/i.test(trimmed)) continue;
+  if (/^[0-9]+ [a-z0-9 ]+$/i.test(trimmed) || /^[MHVLCSQTAZ0-9\.\,\s\-]+$/i.test(trimmed) && trimmed.length > 15) continue;
+  if (/^A target width has to be set|^Aborted (due to|prewarm)/i.test(trimmed)) continue;
   // 过滤已知不需翻译的专有名词/内部产品名
-  const skipExact = new Set(['Chromium', 'Google3', 'Android (main)', 'Welcome to Cider with Jetski']);
+  const skipExact = new Set(['Chromium', 'Google3', 'Android (main)', 'Welcome to Cider with Jetski', 'Antigravity']);
   if (skipExact.has(trimmed)) continue;
 
   // 尝试多种归一化形式匹配字典

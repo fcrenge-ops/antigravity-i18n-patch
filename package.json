@@ -1,6 +1,6 @@
 {
   "name": "antigravity-i18n-patch",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Antigravity 2.0 桌面客户端多语言 (i18n) 本地化补丁套件",
   "main": "dist/chinese_patch.js",
   "repository": {
