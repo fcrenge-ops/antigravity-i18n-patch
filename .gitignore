@@ -7,4 +7,7 @@ Thumbs.db
 .idea/
 .vscode/
 .antigravity_path
+.antigravity_i18n_config.json
+.launcher.lock
+logs/
 *.zip

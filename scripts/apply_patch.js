@@ -21,7 +21,7 @@ if (!fs.existsSync(patchSource)) {
   console.log(`[提示] 未找到 dist/${patchFileName}，正在为 [${localeData.meta.id}] 自动构建...`);
   try {
     const buildScript = path.join(__dirname, 'build.js');
-    execSync(`node "${buildScript}" --lang "${localeData.meta.id}"`, { stdio: 'inherit' });
+    execSync(`"${process.execPath}" "${buildScript}" --lang "${localeData.meta.id}"`, { stdio: 'inherit', windowsHide: true });
   } catch (e) {
     console.error('[错误] 自动构建补丁产物失败:', e);
     process.exit(1);
@@ -112,6 +112,22 @@ if (fs.existsSync(utilsPath)) {
       utilsReplacement
     );
     fs.writeFileSync(utilsPath, utilsContent, 'utf8');
+  } else if (utilsContent.includes('registerWindowWebContents(win, hubContents);')) {
+    // 适配 Antigravity v2.32.x+ 基于 BaseWindow + WebContentsView (hubWcv) 的窗口架构
+    const utilsReplacement = `registerWindowWebContents(win, hubContents); ${UTILS_SENTINEL_START}
+    hubContents.on('did-finish-load', () => {
+        if (!win.isDestroyed?.() && !hubContents.isDestroyed?.()) {
+            void hubContents.executeJavaScript(${JSON.stringify(patchCode)}).catch(() => {});
+        }
+    });
+    ${UTILS_SENTINEL_END}`;
+    utilsContent = utilsContent.replace(
+      'registerWindowWebContents(win, hubContents);',
+      utilsReplacement
+    );
+    fs.writeFileSync(utilsPath, utilsContent, 'utf8');
+  } else {
+    console.warn('[警告] 未在 dist/utils.js 中匹配到窗口加载钩子，将仅依赖 preload.js 注入。');
   }
 }
 

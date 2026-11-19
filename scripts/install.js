@@ -11,6 +11,9 @@ const { execSync, spawn } = require('child_process');
 const readline = require('readline');
 const localeManager = require('./locale_manager');
 const pathResolver = require('./path_resolver');
+const asarTool = require('./asar_tool');
+const userConfig = require('./user_config');
+const { getAsarMeta, compareVersions } = require('./asar_meta');
 
 // 仅当本地尚未建立有效路径缓存时，尝试从正在运行的进程中抢先捕捉一次路径
 try {
@@ -56,6 +59,9 @@ const noPrompt = hasArg('--no-prompt') || hasArg('-y');
 const autoLaunch = hasArg('--auto-launch');
 const skipProcessCheck = hasArg('--skip-process-check');
 const paramLang = getArgValue('--lang') || getArgValue('-l');
+// --launcher (兼容 --guard): 安装成功后直接启用启动器自动补丁；--no-launcher (兼容 --no-guard): 不再询问
+const enableLauncherArg = hasArg('--launcher') || hasArg('--guard');
+const skipLauncherPrompt = hasArg('--no-launcher') || hasArg('--no-guard');
 
 // 简单封装命令行交互提问
 function askQuestion(query) {
@@ -142,10 +148,10 @@ async function selectTargetLocale() {
 function isAntigravityRunning() {
   try {
     if (process.platform === 'win32') {
-      const output = execSync('tasklist /FI "IMAGENAME eq Antigravity.exe" /NH', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
+      const output = execSync('tasklist /FI "IMAGENAME eq Antigravity.exe" /NH', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true });
       return output.toLowerCase().includes('antigravity.exe');
     } else {
-      execSync('pgrep -i antigravity', { stdio: ['pipe', 'pipe', 'ignore'] });
+      execSync('pgrep -i antigravity', { stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true });
       return true;
     }
   } catch (e) {
@@ -157,9 +163,9 @@ async function terminateProcess() {
   log('正在退出 Antigravity 进程...', colors.yellow);
   try {
     if (process.platform === 'win32') {
-      execSync('taskkill /F /IM Antigravity.exe', { stdio: 'ignore' });
+      execSync('taskkill /F /IM Antigravity.exe', { stdio: 'ignore', windowsHide: true });
     } else {
-      execSync('pkill -i antigravity || killall -9 Antigravity', { stdio: 'ignore' });
+      execSync('pkill -i antigravity || killall -9 Antigravity', { stdio: 'ignore', windowsHide: true });
     }
   } catch (e) {
     // 忽略可能已经退出的报错
@@ -206,66 +212,72 @@ async function resolveAntigravityPaths() {
   return result;
 }
 
+// getAsarMeta (极速解析 asar 文件头) 与 compareVersions (语义化版本比较) 已抽离至 ./asar_meta.js，
+// 供安装脚本与启动器自动补丁 (launcher.js) 共同复用
+
 /**
- * 极速解析 asar 文件头获取 package.json 版本号与是否包含 i18n 补丁
- * 纯 Node.js 实现，无需启动子进程，仅耗时 1~2ms
+ * 记录本次成功安装的语言与路径，并按需引导接入启动器自动补丁
  */
-function getAsarMeta(asarPath) {
-  if (!fs.existsSync(asarPath)) return null;
+async function persistAndOfferLauncher(targetLocale, installDir) {
+  const config = userConfig.updateConfig({
+    lang: targetLocale.id,
+    installDir,
+    lastPatchedAt: new Date().toISOString(),
+  });
+
+  let launcher = null;
   try {
-    const fd = fs.openSync(asarPath, 'r');
-    const hBuf = Buffer.alloc(16);
-    fs.readSync(fd, hBuf, 0, 16, 0);
-    const headerPayloadSize = hBuf.readUInt32LE(4);
-    const jsonLen = hBuf.readUInt32LE(12);
-    const headerJsonBuf = Buffer.alloc(jsonLen);
-    fs.readSync(fd, headerJsonBuf, 0, jsonLen, 16);
-    const header = JSON.parse(headerJsonBuf.toString('utf8'));
-    fs.closeSync(fd);
-
-    const isPatched = Boolean(header.files && header.files['.antigravity_i18n.json']);
-    let version = null;
-
-    if (header.files && header.files['package.json'] && header.files['package.json'].offset) {
-      const entry = header.files['package.json'];
-      const dataBase = 8 + headerPayloadSize;
-      const buf = Buffer.alloc(entry.size);
-      const fdPkg = fs.openSync(asarPath, 'r');
-      fs.readSync(fdPkg, buf, 0, entry.size, dataBase + parseInt(entry.offset, 10));
-      fs.closeSync(fdPkg);
-      const pkg = JSON.parse(buf.toString('utf8'));
-      version = pkg.version || null;
-    }
-
-    return {
-      version,
-      isPatched,
-      mtime: fs.statSync(asarPath).mtimeMs,
-      size: fs.statSync(asarPath).size,
-    };
+    launcher = require('./launcher');
   } catch (e) {
-    return {
-      version: null,
-      isPatched: false,
-      mtime: fs.statSync(asarPath).mtimeMs,
-      size: fs.statSync(asarPath).size,
-    };
+    return;
+  }
+
+  if (config.launcher && config.launcher.enabled) {
+    // 若用户显式传参 --launcher，或挂载文件不存在 / Sentinel 丢失（如更换目录或重装代理脚本），自动刷新接入
+    const hookMissing = !config.launcher.hookPath || !fs.existsSync(config.launcher.hookPath);
+    let hookStale = hookMissing;
+    if (!hookMissing && config.launcher.mode === 'proxy_vbs') {
+      try {
+        const raw = fs.readFileSync(config.launcher.hookPath, 'latin1');
+        hookStale = !raw.includes(launcher.VBS_SENTINEL_START);
+      } catch (e) {
+        hookStale = true;
+      }
+    }
+    if (enableLauncherArg || hookStale) {
+      console.log('');
+      launcher.cmdEnable([]);
+      console.log('');
+    } else {
+      log(`• 启动器自动补丁已启用 (${config.launcher.mode || '已接入'})：更新后启动即自动重打 [${targetLocale.id}] 补丁`, colors.green);
+    }
+    return;
+  }
+
+  let enable = enableLauncherArg;
+  if (!enable && !noPrompt && !skipLauncherPrompt) {
+    const proxyVbs = launcher.findProxyVbsPath(installDir);
+    log('----------------------------------------------------', colors.cyan);
+    log('[推荐] Antigravity 每次官方更新都会覆盖 app.asar，导致补丁失效。', colors.yellow);
+    if (proxyVbs) {
+      log(`       检测到您已在使用代理启动器: ${proxyVbs}`, colors.yellow);
+      log('       接入后每次打开客户端前自动检查（平时仅 ~40ms 放行），更新后自动重打补丁，零后台常驻。', colors.yellow);
+    } else {
+      log('       启用"启动器自动补丁"后，每次通过快捷方式打开客户端前自动检查，更新后自动重打补丁，零后台常驻。', colors.yellow);
+    }
+    const answer = await askQuestion('是否接入启动器自动补丁 (更新后打开即自动重打)？(Y/N，回车默认 Y): ');
+    enable = !answer || /^[yY]/i.test(answer);
+  }
+
+  if (enable) {
+    console.log('');
+    launcher.cmdEnable([]);
+    console.log('');
+  } else if (!noPrompt) {
+    log('[提示] 之后可随时运行 bin\\launcher.bat enable 或 npm run launcher:enable 启用启动器自动补丁。', colors.gray);
   }
 }
 
-function compareVersions(v1, v2) {
-  if (!v1 || !v2) return 0;
-  const p1 = v1.split('.').map((n) => parseInt(n, 10) || 0);
-  const p2 = v2.split('.').map((n) => parseInt(n, 10) || 0);
-  const len = Math.max(p1.length, p2.length);
-  for (let i = 0; i < len; i++) {
-    const a = p1[i] || 0;
-    const b = p2[i] || 0;
-    if (a > b) return 1;
-    if (a < b) return -1;
-  }
-  return 0;
-}
 
 // 主流程
 async function main() {
@@ -305,7 +317,7 @@ async function main() {
   if (needBuild) {
     log(`[构建] 正在为 [${targetLocale.id}] 编译补丁引擎...`, colors.cyan);
     try {
-      execSync(`node "${buildScript}" --lang "${targetLocale.id}"`, { stdio: 'inherit' });
+      execSync(`"${process.execPath}" "${buildScript}" --lang "${targetLocale.id}"`, { stdio: 'inherit', windowsHide: true });
     } catch (e) {
       log('[错误] 补丁构建失败，退出安装。', colors.red);
       process.exit(1);
@@ -339,8 +351,11 @@ async function main() {
       log(`[防版本降级] 检测到官方客户端已升级: v${backupMeta.version} -> v${appMeta.version}！`, colors.yellow);
       needRefreshBackup = true;
     }
-    // 校验 B: 当前 app.asar 是纯净官方包且修改时间明显晚于旧备份，说明被官方热修复或覆盖更新
-    else if (!appMeta.isPatched && appMeta.mtime > backupMeta.mtime) {
+    // 校验 B: 当前 app.asar 是纯净官方包且与旧备份不一致（体积/版本变化或修改时间晚于备份），说明被官方热修复或覆盖更新
+    else if (
+      !appMeta.isPatched &&
+      (appMeta.size !== backupMeta.size || appMeta.version !== backupMeta.version || appMeta.mtime > backupMeta.mtime)
+    ) {
       log(`[防版本降级] 检测到官方全新覆盖的纯净包 app.asar，准备更新基准源备份...`, colors.yellow);
       needRefreshBackup = true;
     }
@@ -400,9 +415,9 @@ async function main() {
       }
     }
 
-    // 5. 解包 asar
+    // 5. 解包 asar (优先使用本地 @electron/asar 依赖，可离线运行)
     log(`[解包] 正在解压基准包: ${path.basename(sourceAsar)} ...`, colors.cyan);
-    execSync(`npx --yes @electron/asar extract "${sourceAsar}" "${tempExtractDir}"`, { stdio: 'inherit' });
+    await asarTool.extract(sourceAsar, tempExtractDir);
 
     if (!fs.existsSync(path.join(tempExtractDir, 'dist', 'preload.js'))) {
       throw new Error('解包不完整，未找到 dist/preload.js');
@@ -421,14 +436,14 @@ async function main() {
     // 6. 调用 apply_patch.js 注入补丁
     const applyScript = path.join(__dirname, 'apply_patch.js');
     log(`[注入] 正在应用 [${targetLocale.id} - ${targetLocale.nativeName}] 补丁与原生配置...`, colors.cyan);
-    execSync(`node "${applyScript}" "${tempExtractDir}" "${targetLocale.id}"`, { stdio: 'inherit' });
+    execSync(`"${process.execPath}" "${applyScript}" "${tempExtractDir}" "${targetLocale.id}"`, { stdio: 'inherit', windowsHide: true });
 
     // 7. 在临时目录重新封包
     const tempPackedAsar = path.join(tempPackDir, 'app.asar');
     const tempPackedUnpacked = path.join(tempPackDir, 'app.asar.unpacked');
 
     log('[打包] 正在重新封包为 app.asar ...', colors.cyan);
-    execSync(`npx --yes @electron/asar pack "${tempExtractDir}" "${tempPackedAsar}" --unpack-dir "node_modules/chrome-devtools-mcp"`, { stdio: 'inherit' });
+    await asarTool.pack(tempExtractDir, tempPackedAsar, { unpackDir: 'node_modules/chrome-devtools-mcp' });
 
     if (!fs.existsSync(tempPackedAsar)) {
       throw new Error(`封包失败，未生成 ${tempPackedAsar}`);
@@ -457,6 +472,9 @@ async function main() {
     log('• 代码编辑区、终端输出与核心数据已受智能保护，保持原汁原味');
     log('• 若需切换其他语言或还原官方英文版，随时重新运行 install 或 restore 脚本');
     console.log('');
+
+    // 记录安装配置，并引导接入启动器自动补丁
+    await persistAndOfferLauncher(targetLocale, installDir);
 
     // 9. 启动引导
     let launchCmd = null;

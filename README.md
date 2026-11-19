@@ -19,7 +19,7 @@
 ## 🌟 核心特性 (Key Features)
 
 1. **全新多语言 i18n 架构**
-   - 不再局限于单一语言，采用模块化语言包（Language Pack）设计。目前内置**全量简体中文 (`zh-CN`, 2600+ 词条)**、**繁体中文 (`zh-TW`)**、**日语 (`ja-JP`)** 与 **英文基准模版 (`en-US`)**。
+   - 不再局限于单一语言，采用模块化语言包（Language Pack）设计。目前内置**全量简体中文 (`zh-CN`, 4780+ 词条)**、**繁体中文 (`zh-TW`)**、**日语 (`ja-JP`)** 与 **英文基准模版 (`en-US`)**。
 2. **安装阶段自由选择语言**
    - 运行安装脚本时，系统会自动扫描已就绪的语言包，并在终端呈现交互式选择菜单（直接回车默认安装简体中文）。
    - 同时支持命令行参数一键静默指定，如 `--lang zh-TW`、`--lang ja-JP` 或 `-l zh-CN`。
@@ -45,8 +45,10 @@ antigravity-i18n-patch/
 ├── bin/                           # 统一执行入口目录 (快捷启动脚本)
 │   ├── install.bat                # 【Windows】双击一键安装补丁 (带语言交互选择)
 │   ├── restore.bat                # 【Windows】双击一键还原官方英文版
+│   ├── launcher.bat               # 【Windows】启动器自动补丁管理 (启动前检测，零后台常驻)
 │   ├── install.sh                 # 【macOS / Linux】终端一键安装补丁
-│   └── restore.sh                 # 【macOS / Linux】终端一键还原官方英文版
+│   ├── restore.sh                 # 【macOS / Linux】终端一键还原官方英文版
+│   └── launcher.sh                # 【macOS / Linux】启动器自动补丁管理
 ├── dist/                          # 编译产物目录
 │   ├── patch-zh-CN.js             # 简体中文补丁引擎产物
 │   ├── patch-zh-TW.js             # 繁体中文补丁引擎产物
@@ -54,7 +56,7 @@ antigravity-i18n-patch/
 │   ├── patch-en-US.js             # 英文基准补丁产物
 │   └── chinese_patch.js           # 向下兼容产物 (zh-CN 镜像)
 ├── locales/                       # 模块化多语言数据中心
-│   ├── zh-CN/                     # 【简体中文语言包】(2600+ 条全量词库)
+│   ├── zh-CN/                     # 【简体中文语言包】(4780+ 条全量词库)
 │   │   ├── manifest.json          # 语言元数据、字体栈与托盘文案
 │   │   ├── dict.json              # 核心精确翻译字典
 │   │   ├── rules.js               # 动态正则规则 (耗时、相对时间、额度等)
@@ -81,6 +83,10 @@ antigravity-i18n-patch/
 │   ├── install.js                 # 跨平台自动化安装主程序 (含语言选择交互)
 │   ├── apply_patch.js             # Electron ASAR 解包注入主逻辑
 │   ├── restore.js                 # 跨平台官方英文还原主程序
+│   ├── launcher.js                # 启动器包装集成：启动前检测更新并自动重打补丁
+│   ├── asar_tool.js               # ASAR 解包/封包封装 (优先本地依赖，可离线)
+│   ├── asar_meta.js               # ASAR 文件头极速解析 (版本号 / 补丁状态)
+│   ├── user_config.js             # 本地安装配置 (语言、路径、启动器设置) 持久化
 │   └── check_missing.js           # 多语言词条比对与覆盖率统计分析工具
 ├── docs/                          # 多语言说明文档目录
 │   ├── README.en.md               # 英文说明文档 (English)
@@ -114,6 +120,9 @@ antigravity-i18n-patch/
    ```
 3. **直接按下回车**：立即安装官方推荐的简体中文（zh-CN）；或输入对应数字编号（如 `3`）安装日语或其他已添加的语言。
 4. 脚本会自动完成进程检测、备份原版、按需编译补丁、注入与替换封包。
+5. 安装成功后会询问**是否接入启动器自动补丁**，直接回车接入后，今后每次打开 Antigravity 前都会自动检测补丁是否被官方更新覆盖并按需静默重打，零后台常驻进程（详见 [FAQ Q3](#q3-antigravity-一更新补丁就失效每次都要重新打补丁怎么办)）。
+
+> 💡 首次使用建议先在项目根目录执行一次 `npm install`，安装本地 `@electron/asar` 依赖，使补丁与启动器自动重打可离线运行。
 
 ---
 
@@ -161,6 +170,12 @@ node scripts/check_missing.js --lang zh-TW
 
 # 还原官方英文原版
 npm run restore
+
+# 启动器自动补丁 (零后台常驻，启动前检查并按需重打)
+npm run launcher:enable   # 接入启动器 (自动适配 launch-with-proxy.vbs 或接管快捷方式)
+npm run launcher:status   # 查看接入状态与当前补丁状态
+npm run launcher:repair   # 立即检测并交互式修复补丁 (客户端运行中可提示关闭并重启)
+npm run launcher:disable  # 停用并还原启动器
 ```
 
 ---
@@ -204,6 +219,22 @@ npm run restore
 
 #### Q2: 还原官方原版如何操作？
 - 直接运行 `bin/restore.bat`（Windows）或 `./bin/restore.sh`（macOS/Linux），或执行 `npm run restore`，即可秒级恢复官方纯英文版。
+- 还原时会**自动停用启动器自动补丁**，避免下次启动时又把补丁打回去。
+
+#### Q3: Antigravity 一更新补丁就失效，每次都要重新打补丁怎么办？
+- **原因**：官方更新会用全新的 `app.asar` 覆盖安装目录，注入在其中的补丁自然随之丢失。
+- **解决方案：接入启动器自动补丁**（一次接入，零后台进程）。安装补丁成功后脚本会询问是否接入（直接回车即接入），也可随时手动执行：
+  ```bash
+  bin\launcher.bat enable     # Windows (双击 launcher.bat 可进入交互菜单)
+  ./bin/launcher.sh enable    # macOS / Linux
+  npm run launcher:enable     # 通用
+  ```
+- **工作原理**：
+  1. **智能复用现有代理启动器**：若存在 `%APPDATA%\Antigravity\launcher\launch-with-proxy.vbs`，自动在其启动客户端之前嵌入启动前检查片段（完整保留原有代理逻辑）；若不存在，则自动生成包装启动器并接管桌面/开始菜单快捷方式。
+  2. **平时打开**：读取 `app.asar` 文件头验证补丁有效（约 40ms），直接放行启动，几乎零感知。
+  3. **更新后首次打开**：检测到 `app.asar` 被官方更新覆盖且客户端未运行，立即在启动前同步静默重打补丁，再拉起客户端，打开即为汉化版（无任何后台常驻进程、无定时轮询盲区）。
+- **常用命令**：`launcher status`（查看状态）、`launcher repair`（立即检查修复，客户端运行中时可交互关闭并重启）、`launcher disable`（卸载还原）。运行日志位于 `logs/launcher.log`。
+- **注意**：启动器依赖本项目目录与 Node.js，请勿移动/删除项目文件夹；如需移动，请在新位置重新执行 `launcher enable`。执行一次 `npm install` 安装本地 `@electron/asar` 后即可完全**离线**重打补丁。
 
 ---
 

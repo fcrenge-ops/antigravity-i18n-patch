@@ -1,6 +1,6 @@
 {
   "name": "antigravity-i18n-patch",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Antigravity 2.0 桌面客户端多语言 (i18n) 本地化补丁套件",
   "main": "dist/chinese_patch.js",
   "repository": {
@@ -18,6 +18,11 @@
     "build:ja-JP": "node scripts/build.js --lang ja-JP",
     "install-patch": "node scripts/install.js",
     "restore": "node scripts/restore.js",
+    "launcher:enable": "node scripts/launcher.js enable",
+    "launcher:disable": "node scripts/launcher.js disable",
+    "launcher:status": "node scripts/launcher.js status",
+    "launcher:repair": "node scripts/launcher.js repair",
+    "launcher:ensure": "node scripts/launcher.js ensure",
     "check": "node scripts/check_missing.js --lang zh-CN",
     "check:ja-JP": "node scripts/check_missing.js --lang ja-JP",
     "check:zh-TW": "node scripts/check_missing.js --lang zh-TW"
@@ -33,5 +38,8 @@
     "electron-i18n"
   ],
   "author": "fcrenge-ops",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@electron/asar": "^3.4.1"
+  }
 }

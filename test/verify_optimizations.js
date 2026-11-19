@@ -108,11 +108,100 @@ pathResolver.resolveAntigravityPaths().then((res) => {
   console.log('  [PASS] restore.js unpacked 恢复 Bug 已修复');
 
   // 13. 验证 install.js 模块导出与测试隔离
-  console.log('[测试 13/13] 校验 install.js 模块导出与入口守卫...');
+  console.log('[测试 13/14] 校验 install.js 模块导出与入口守卫...');
   const installModule = require('../scripts/install.js');
   assert(typeof installModule.getAsarMeta === 'function', 'install.js 必须导出 getAsarMeta');
   assert(typeof installModule.compareVersions === 'function', 'install.js 必须导出 compareVersions');
   console.log('  [PASS] install.js 模块化导出与入口隔离就绪');
 
-  console.log('\n================ 所有 13 项优化与 Bug 修复全部验证通过！================');
+  // 14. 验证 Antigravity v2.32.2+ WebContentsView 架构适配与新词库/规则
+  console.log('[测试 14/14] 校验 v2.32.2+ WebContentsView 注入适配与新特性规则...');
+  assert(applyCode.includes('registerWindowWebContents(win, hubContents);'), 'apply_patch 必须适配 v2.32.2+ BaseWindow/WebContentsView 架构');
+  assert(applyCode.includes('hubContents.executeJavaScript'), 'apply_patch 必须向 hubContents 注入二次保障脚本');
+  assert(patchCode.includes('.textLayer'), '补丁排除选择器必须保护 PDF 文本层 (.textLayer)');
+  const cnRules = require('../locales/zh-CN/rules.js');
+  const thinkingRule = cnRules.find((r) => r.pattern.test('Thinking for 12s'));
+  assert(thinkingRule && 'Thinking for 12s'.replace(thinkingRule.pattern, thinkingRule.replace) === '正在思考 12s', 'zh-CN 应支持 Thinking for 规则');
+  const qRule = cnRules.find((r) => r.pattern.test('Question 2 of 5'));
+  assert(qRule && 'Question 2 of 5'.replace(qRule.pattern, qRule.replace) === '问题 2 / 5', 'zh-CN 应支持 Question X of Y 规则');
+  assert(zhMenu['Checking for Updates...'] === '正在检查更新...', 'zh-CN menu.json 应包含动态更新状态菜单');
+  console.log('  [PASS] v2.32.2+ 注入架构适配、PDF/Mermaid 保护与新增规则验证通过');
+
+  // 15. 验证启动器自动补丁套件与离线 ASAR 封装
+  console.log('[测试 15/15] 校验启动器自动补丁 (launcher.js) 与关联模块...');
+  const asarMeta = require('../scripts/asar_meta.js');
+  const asarTool = require('../scripts/asar_tool.js');
+  const userConfig = require('../scripts/user_config.js');
+  const launcherMod = require('../scripts/launcher.js');
+  assert(typeof asarMeta.getAsarMeta === 'function' && typeof asarMeta.compareVersions === 'function', 'asar_meta 必须导出 getAsarMeta 与 compareVersions');
+  assert(typeof asarTool.extract === 'function' && typeof asarTool.pack === 'function', 'asar_tool 必须导出 extract 与 pack');
+  assert(typeof userConfig.loadConfig === 'function' && typeof userConfig.updateConfig === 'function', 'user_config 必须导出 loadConfig 与 updateConfig');
+  assert(
+    typeof launcherMod.injectIntoProxyVbs === 'function' &&
+      typeof launcherMod.removeFromProxyVbs === 'function' &&
+      typeof launcherMod.cmdEnsure === 'function',
+    'launcher 必须导出 VBS 注入/移除与 ensure 接口'
+  );
+  assert(fs.existsSync(path.join(__dirname, '..', 'bin', 'launcher.bat')), '必须存在 Windows 启动器入口 bin/launcher.bat');
+  assert(fs.existsSync(path.join(__dirname, '..', 'bin', 'launcher.sh')), '必须存在 Unix 启动器入口 bin/launcher.sh');
+  assert(restoreContent.includes('launcher.cmdDisable()'), 'restore.js 还原后必须自动停用启动器自动补丁');
+  console.log('  [PASS] 启动器自动补丁、离线 ASAR 封装与还原联动校验通过');
+
+  // 16. 验证斜杠指令/内置技能/MCP 提示词描述与长文本阈值放宽
+  console.log('[测试 16/16] 校验斜杠指令、技能与 MCP 提示词覆盖及 1000 字符上限...');
+  assert(patchCode.includes('trimmed.length > 1000'), 'dist/patch-zh-CN.js 应放宽单段翻译长度上限至 1000 字符');
+  const zhDict = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'locales', 'zh-CN', 'dict.json'), 'utf-8'));
+  const requiredSlashDescs = [
+    'Run until the specified goal is completely finished.',
+    'Compact the conversation now (summarize history to free up the context window).',
+    'Run an instruction on a recurring schedule or as a one-time timer.',
+    'Invoke a browser agent for web tasks.',
+    'Plan carefully before executing a task.',
+    "Systematically explore the database: discover available tables, inspect their schemas, sample the data, and summarize what's there.",
+    'Deep-dive into a specific table: retrieve its schema, sample its data, and suggest useful queries.',
+  ];
+  for (const key of requiredSlashDescs) {
+    assert(zhDict[key] && zhDict[key] !== key, `zh-CN dict.json 应包含斜杠指令/MCP描述翻译: ${key}`);
+    assert(patchCode.includes(zhDict[key]), `dist/patch-zh-CN.js 应包含译文: ${zhDict[key]}`);
+  }
+  console.log('  [PASS] 斜杠指令、技能与 MySQL MCP 提示词覆盖及长文本上限验证通过');
+
+  // 17. 验证设置页全量遗漏词条、界面布局实验文案与模板动态正则规则
+  console.log('[测试 17/17] 校验设置页布局实验文案、单字按钮与模板动态规则...');
+  const requiredSettingsKeys = [
+    'Knowledge Work',
+    'Simplified interface for research, writing, and everyday tasks.',
+    'Software Engineering',
+    'Full interface for coding, developer tools, and managing agents.',
+    'Project 4K',
+    'Queue',
+    'Voice mode',
+    'Change',
+    'Turbo mode',
+  ];
+  for (const key of requiredSettingsKeys) {
+    assert(zhDict[key] && zhDict[key] !== key, `zh-CN dict.json 应包含设置页补全词条: ${key}`);
+    assert(patchCode.includes(zhDict[key]), `dist/patch-zh-CN.js 应包含设置页译文: ${zhDict[key]}`);
+  }
+  const thoughtRule = cnRules.find((r) => r.pattern.test('Thought for 1m 20s'));
+  assert(thoughtRule && 'Thought for 1m 20s'.replace(thoughtRule.pattern, thoughtRule.replace) === '思考耗时 1m 20s', 'zh-CN 应支持 Thought for 兜底规则');
+  const appSettingsRule = cnRules.find((r) => r.pattern.test('Manage Antigravity app settings.'));
+  assert(
+    appSettingsRule && 'Manage Antigravity app settings.'.replace(appSettingsRule.pattern, appSettingsRule.replace) === '管理 Antigravity 应用设置。',
+    'zh-CN 应支持 Manage ... app settings 动态规则'
+  );
+  const shortcutRecRule = cnRules.find((r) =>
+    r.pattern.test('Recording shortcut for Copy. Press keys to bind, Enter to save, Escape to cancel.')
+  );
+  assert(
+    shortcutRecRule &&
+      'Recording shortcut for Copy. Press keys to bind, Enter to save, Escape to cancel.'.replace(
+        shortcutRecRule.pattern,
+        shortcutRecRule.replace
+      ) === '正在为 Copy 录制快捷键。按下按键进行绑定，Enter 保存，Escape 取消。',
+    'zh-CN 应支持快捷键录制提示动态规则'
+  );
+  console.log('  [PASS] 设置页实验文案、按钮单词与模板动态正则规则验证通过');
+
+  console.log('\n================ 所有 17 项优化、适配与全量覆盖校验全部通过！================');
 });

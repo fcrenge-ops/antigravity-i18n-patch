@@ -11,7 +11,6 @@
   const LOADED_ATTR = 'data-antigravity-i18n-loaded';
   if (typeof document !== 'undefined' && document.documentElement) {
     if (document.documentElement.hasAttribute(LOADED_ATTR)) return;
-    document.documentElement.setAttribute(LOADED_ATTR, 'true');
   }
 
   if (typeof window !== 'undefined') {
@@ -42,6 +41,8 @@
     '.hljs',
     '.prism-code',
     '.code-block',
+    '.textLayer',
+    '.mermaid-wrapper svg',
     '[contenteditable="true"]',
     '[data-lexical-editor]',
     '[data-slate-editor]',
@@ -91,7 +92,7 @@
   function translateText(text) {
     if (!text || typeof text !== 'string') return text;
     const trimmed = text.trim();
-    if (!trimmed || trimmed.length > 500) return text;
+    if (!trimmed || trimmed.length > 1000) return text;
 
     // 快速未命中缓存过滤
     if (untranslatableTextSet.has(trimmed)) return text;
@@ -215,6 +216,12 @@
   }
 
   function initObserver() {
+    if (typeof document !== 'undefined' && document.documentElement) {
+      if (document.documentElement.hasAttribute(LOADED_ATTR)) return;
+      document.documentElement.setAttribute(LOADED_ATTR, 'true');
+    }
+    injectCustomFont();
+
     const observer = new MutationObserver((mutations) => {
       for (let i = 0; i < mutations.length; i++) {
         const mutation = mutations[i];
@@ -263,10 +270,9 @@
   }
 
   function initialize() {
-    if (typeof document !== 'undefined' && document.documentElement) {
-      document.documentElement.setAttribute(LOADED_ATTR, 'true');
+    if (typeof document !== 'undefined' && (document.head || document.documentElement)) {
+      injectCustomFont();
     }
-    injectCustomFont();
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {
         initObserver();

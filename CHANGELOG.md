@@ -5,6 +5,33 @@
 
 ---
 
+## [2.3.0] - 2026-11-19
+
+### ✨ 全面适配 Antigravity v2.32.2（客户端版本 44.9.1）与启动器自动补丁
+- **启动器自动补丁集成 (`scripts/launcher.js`)**：彻底解决"Antigravity 一更新补丁就失效、需要手动重打"的问题，**零后台常驻进程、零定时轮询盲区**。
+  - **智能适配代理启动器**：在 Windows 上优先检测 `%APPDATA%\Antigravity\launcher\launch-with-proxy.vbs` 并安全嵌入启动前校验钩子（保留原有代理逻辑与文件编码，支持随时一键无损移除）；若无代理启动器，则自动生成包装脚本并接管桌面/开始菜单快捷方式。支持 Linux `.desktop` 覆盖与 macOS 启动脚本。
+  - **启动前同步拦截**：平时补丁有效时仅耗数十毫秒极速放行；一旦检测到官方更新覆盖 `app.asar`，在拉起客户端前自动同步静默重打补丁，打开即为汉化版。
+  - **并发防重入锁 (`.launcher.lock`)** 与运行日志轮转 (`logs/launcher.log`)，客户端已运行时自动跳过防止打断工作。
+  - 新增 `bin/launcher.bat`、`bin/launcher.sh` 与 `npm run launcher:enable|disable|status|repair|ensure` 快捷命令。
+  - 安装成功后自动记录语言与安装路径 (`.antigravity_i18n_config.json`)，并引导接入启动器自动补丁；新增 `--launcher` / `--no-launcher` 参数。
+- **核心引擎与离线安装重大升级 (`apply_patch.js`, `build.js`, `install.js`, `restore.js`)**：
+  - 适配新版客户端 `BaseWindow` + `WebContentsView (hubWcv)` 窗口架构，新增 `registerWindowWebContents(win, hubContents)` 挂载钩子，恢复 `did-finish-load` 二次保障注入。
+  - 优化 `preload.js` 在 `document.documentElement` 尚未就绪时的生命周期互斥标记与字体注入时机。
+  - 新增 `.textLayer` 与 `.mermaid-wrapper svg` 保护选择器，防止 PDF 阅读器正文及 Mermaid 图表内容被误翻译。
+  - 将 `translateText()` 的单段文本长度上限由 `500` 放宽至 `1000` 字符，确保长技能 (Skill) 与斜杠指令描述也能完整汉化。
+  - `@electron/asar` 改为项目本地依赖并通过模块 API 调用（缺失时自动降级为 npx），补丁与启动器自动重打可离线运行、速度更快；`getAsarMeta` / `compareVersions` 抽离至 `scripts/asar_meta.js`，新增 `scripts/asar_tool.js`、`scripts/user_config.js`。
+  - 强化 `install.js` 防版本降级校验：官方热修复替换纯净 `app.asar` 时即使保留旧构建时间戳，只要大小或版本变化亦会同步更新基准备份；所有子进程调用增加 `windowsHide`；执行 `restore` 时自动停用启动器自动补丁。
+- **词库大幅扩充（2692 条 → 4958 条，净增 2266 条）**：
+  - 深度解包 `language_server.exe` 内嵌前端资源包、`app.asar` 主进程脚本以及内置技能/斜杠指令元数据，并通过词法全量审计补齐界面布局实验文案与设置页长/短词条，同步更新简体中文 (`zh-CN`)、繁体中文 (`zh-TW`) 与日语 (`ja-JP`) 三语全量词库（覆盖率达 99.0%）。
+  - 重点覆盖新版功能模块：**通用设置界面布局 (`Knowledge Work` / `Software Engineering` / `Project 4K`)、执行/语音按钮与高级安全说明 (`Queue` / `Voice mode` / `Change` / `Turbo mode`)**、**内置 `/` 斜杠指令与内置技能 (`goal` / `compact` / `schedule` / `browser` / `plan` / `grill-me` / `teamwork` / `boost` / `learn`)**、**MySQL & Chrome DevTools MCP 提示词与技能描述**、**内置浏览器与站点权限控制**、**GitHub / GitLab / Gerrit 分支与仓库策略**、**自动化任务与 CEL 表达式/Hooks**、**旁白提问 (`/btw` Side Questions)**、**协调器 (Coordinators) 与 Best of N 模型对决**、**远程控制 (Remote Control) 与 SSH/WSL 向导**、**语音模式 (Voice Mode)**、**PDF 批注与 Mermaid 图表预览**、**AI 积分与配额提示**。
+- **动态正则与原生菜单同步升级 (`rules.js` & `menu.json`)**：
+  - 新增 `Thinking for ...`、`Thought for ...`、`Worked for ...`、欢迎语、设置页动态应用/配额/权限描述、快捷键录制提示、对话框/工具执行状态、`Question X of Y` 等 **170+ 条动态正则规则**。
+  - 原生菜单补充 `Checking for Updates...`、`Downloading Update...`、`Restart to Update` 动态状态翻译。
+- **自动化验证升级 (`test/verify_optimizations.js`)**：
+  - 扩展至 17 项自动化验证用例，全面覆盖新架构注入钩子、规则匹配、菜单完整性、斜杠指令/MCP 描述、设置页实验文案、启动器自动补丁套件与长文本上限校验。
+
+---
+
 ## [2.2.0] - 2026-10-13
 
 ### ✨ 新增与新特性覆盖 (Added & Feature Coverage)

@@ -85,6 +85,7 @@ function detectFromRunningProcess() {
       const out = execSync(`powershell -NoProfile -Command "${psCmd}"`, {
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'ignore'],
+        windowsHide: true,
       }).trim();
       if (out && fs.existsSync(out)) {
         return path.dirname(out);
@@ -93,6 +94,7 @@ function detectFromRunningProcess() {
       const out = execSync("pgrep -il antigravity | awk '{print $2}' | head -n 1", {
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'ignore'],
+        windowsHide: true,
       }).trim();
       if (out && out.includes('.app')) {
         const appIdx = out.indexOf('.app');
@@ -103,6 +105,7 @@ function detectFromRunningProcess() {
       const out = execSync('readlink -f /proc/$(pgrep -i antigravity | head -n 1)/exe', {
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'ignore'],
+        windowsHide: true,
       }).trim();
       if (out && fs.existsSync(out)) {
         return path.dirname(out);
@@ -167,6 +170,7 @@ function detectFromWindowsRegistry() {
       const output = execSync(`reg query "${hive}" /s /f "antigravity"`, {
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'ignore'],
+        windowsHide: true,
       });
 
       const lines = output.split(/[\r\n]+/);
@@ -206,7 +210,7 @@ function detectFromWindowsRegistry() {
 function detectFromPathCommand() {
   try {
     const cmd = process.platform === 'win32' ? 'where antigravity.exe' : 'which antigravity';
-    const out = execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+    const out = execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true }).trim();
     const firstLine = out.split(/[\r\n]+/)[0];
     if (firstLine && fs.existsSync(firstLine)) {
       const dir = path.dirname(firstLine);

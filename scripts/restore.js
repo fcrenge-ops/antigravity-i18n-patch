@@ -83,7 +83,7 @@ async function terminateProcess() {
   log('正在退出 Antigravity 进程...', colors.yellow);
   try {
     if (process.platform === 'win32') {
-      execSync('taskkill /F /IM Antigravity.exe', { stdio: 'ignore' });
+      execSync('taskkill /F /IM Antigravity.exe', { stdio: 'ignore', windowsHide: true });
     } else {
       execSync('pkill -i antigravity || killall -9 Antigravity', { stdio: 'ignore' });
     }
@@ -174,6 +174,18 @@ async function main() {
   log('   ✅ 成功恢复！Antigravity 已还原为官方英文原版！   ', colors.green);
   log('====================================================', colors.green);
   console.log('');
+
+  // 还原官方版后必须同步停用启动器自动补丁，否则下次启动时又会把补丁打回去
+  try {
+    const userConfig = require('./user_config');
+    const launcher = require('./launcher');
+    const cfg = userConfig.loadConfig();
+    if (cfg.launcher && cfg.launcher.enabled) {
+      launcher.cmdDisable();
+      log('[提示] 已同时停用启动器自动补丁；重新安装补丁时可再次启用。', colors.gray);
+      console.log('');
+    }
+  } catch (e) {}
 
   // 启动引导
   let launchCmd = null;
